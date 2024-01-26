@@ -65,7 +65,9 @@ namespace Riten.Native.Cursors.Editor
                 NTCursors.Invalid => MouseCursor.ArrowMinus,
                 NTCursors.ResizeDiagonalLeft => MouseCursor.ResizeUpLeft,
                 NTCursors.ResizeDiagonalRight => MouseCursor.ResizeUpRight,
-                NTCursors.ResizeAll => MouseCursor.MoveArrow,
+                NTCursors.ResizeAll => MouseCursor.ScaleArrow,
+                NTCursors.OpenHand => MouseCursor.Pan,
+                NTCursors.ClosedHand => MouseCursor.Pan,
                 _ => null
             };
             

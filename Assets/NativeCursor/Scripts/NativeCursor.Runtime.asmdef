@@ -1,15 +1,13 @@
 {
-    "name": "NativeCursor.Examples",
+    "name": "NativeCursor.Runtime",
     "rootNamespace": "",
-    "references": [
-        "GUID:59a8075002be4f44788c2da8680125f4"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
-    "overrideReferences": false,
+    "overrideReferences": true,
     "precompiledReferences": [],
-    "autoReferenced": false,
+    "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false
