@@ -99,7 +99,7 @@ namespace Riten.Native.Cursors
         }
         
         /// <summary>
-        /// Removes the last cursor from the stack.
+        /// Pops the cursor that is being rendered.
         /// Always prefer using Pop(int id) if you have the id.
         /// </summary>
         /// <returns>True if a cursor was removed, false otherwise.</returns>
@@ -107,16 +107,16 @@ namespace Riten.Native.Cursors
         {
             if (_stack.Count > 0)
             {
-                _stack.RemoveAt(_stack.Count - 1);
-                OnStackChanged();
-                return true;
+                var top = Peek();
+                return Pop(top.id);
             }
 
             return false;
         }
         
         /// <summary>
-        /// 
+        /// Pops the cursor with the given id.
+        /// You can get the id from the return of Push().
         /// </summary>
         /// <returns></returns>
         public static bool Pop(int id)

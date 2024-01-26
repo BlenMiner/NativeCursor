@@ -8,3 +8,8 @@ markdown_extensions:
     - pymdownx.superfences
     - codehilite
 theme: material
+nav:
+    - Getting Started: index.md
+    - Native Cursor API: nativeCursorAPI.md
+    - Cursor Stack API: cursorStackAPI.md
+    - Components: components.md
