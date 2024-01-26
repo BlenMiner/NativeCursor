@@ -2,73 +2,97 @@
 
 void SetCursorToArrow() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor arrow] set];
+        [[NSCursor arrowCursor] set];
     });
 }
 
 void SetCursorToIBeam() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor iBeam] set];
+        [[NSCursor IBeamCursor] set];
     });
 }
 
 void SetCursorToCrosshair() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor crosshair] set];
+        [[NSCursor crosshairCursor] set];
     });
 }
 
 void SetCursorToOpenHand() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor openHand] set];
+        [[NSCursor openHandCursor] set];
     });
 }
 
-void SetCursorToPointingHand() {
+void SetCursorToClosedHand() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor pointingHand] set];
+        [[NSCursor closedHandCursor] set];
     });
 }
 
 void SetCursorToResizeLeft() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor resizeLeft] set];
+        [[NSCursor resizeLeftCursor] set];
     });
 }
 
 void SetCursorToResizeRight() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor resizeRight] set];
+        [[NSCursor resizeRightCursor] set];
     });
 }
 
 void SetCursorToResizeLeftRight() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor resizeLeftRight] set];
+        [[NSCursor resizeLeftRightCursor] set];
     });
 }
 
 void SetCursorToResizeUp() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor resizeUp] set];
+        [[NSCursor resizeUpCursor] set];
     });
 }
 
 void SetCursorToResizeDown() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor resizeDown] set];
+        [[NSCursor resizeDownCursor] set];
     });
 }
 
 void SetCursorToResizeUpDown() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor resizeUpDown] set];
+        [[NSCursor resizeUpDownCursor] set];
     });
 }
 
 void SetCursorToDisappearingItem() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor disappearingItem] set];
+        [[NSCursor disappearingItemCursor] set];
+    });
+}
+
+void SetCursorToOperationNotAllowed() {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[NSCursor operationNotAllowedCursor] set];
+    });
+}
+
+void SetCursorToDragLink() {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[NSCursor dragLinkCursor] set];
+    });
+}
+
+void SetCursorToDragCopy() {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[NSCursor dragCopyCursor] set];
+    });
+}
+
+void SetCursorToContextualMenu() {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[NSCursor contextualMenuCursor] set];
     });
 }
 
@@ -78,26 +102,8 @@ void SetCursorToIBeamCursorForVerticalLayout() {
     });
 }
 
-void SetCursorToOperationNotAllowed() {
+void SetCursorToPointingHand() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor operationNotAllowed] set];
-    });
-}
-
-void SetCursorToDragLink() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor dragLink] set];
-    });
-}
-
-void SetCursorToDragCopy() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor dragCopy] set];
-    });
-}
-
-void SetCursorToContextualMenu() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor contextualMenu] set];
+        [[NSCursor pointingHandCursor] set];
     });
 }

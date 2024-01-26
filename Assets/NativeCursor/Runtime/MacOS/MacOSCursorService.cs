@@ -1,0 +1,74 @@
+#if !UNITY_EDITOR && UNITY_STANDALONE_OSX
+using System.Runtime.InteropServices;
+using UnityEngine;
+
+namespace Riten.Native.Cursors
+{
+    public class MacOSCursorService : ICursorService
+    {
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToArrow();
+
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToIBeam();
+
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToCrosshair();
+
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToOpenHand();
+
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToResizeLeftRight();
+
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToResizeUp();
+
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToResizeDown();
+
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToResizeUpDown();
+
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToOperationNotAllowed();
+
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToContextualMenu();
+
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToPointingHand();
+        
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void Setup()
+        {
+            NativeCursor.SetService(new MacOSCursorService());
+        }
+
+        public bool SetCursor(NTCursors cursor)
+        {
+            switch (cursor)
+            {
+                case NTCursors.Arrow: SetCursorToArrow(); return true;
+                case NTCursors.IBeam: SetCursorToIBeam(); return true;
+                case NTCursors.Crosshair: SetCursorToCrosshair(); return true;
+                case NTCursors.Link: SetCursorToPointingHand(); return true;
+                case NTCursors.Busy: SetCursorToOpenHand(); return true;
+                case NTCursors.Invalid: SetCursorToOperationNotAllowed(); return true;
+                case NTCursors.ResizeVertical: SetCursorToResizeUpDown(); return true;
+                case NTCursors.ResizeHorizontal: SetCursorToResizeLeftRight(); return true;
+                case NTCursors.ResizeDiagonalLeft: SetCursorToResizeUp(); return true;
+                case NTCursors.ResizeDiagonalRight: SetCursorToResizeDown(); return true;
+                case NTCursors.ResizeAll: SetCursorToContextualMenu(); return true;
+                default: return false;
+            }
+        }
+
+        public void ResetCursor()
+        {
+            SetCursorToArrow();
+        }
+    }
+}
+
+#endif
