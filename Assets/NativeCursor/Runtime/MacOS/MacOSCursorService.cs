@@ -67,7 +67,7 @@ namespace Riten.Native.Cursors
                 case NTCursors.ResizeHorizontal: SetCursorToResizeLeftRight(); return true;
                 case NTCursors.ResizeDiagonalLeft: SetCursorToResizeUp(); return true;
                 case NTCursors.ResizeDiagonalRight: SetCursorToResizeDown(); return true;
-                case NTCursors.ResizeAll: SetCursorToContextualMenu(); return true;
+                case NTCursors.ResizeAll: SetCursorToArrow(); return true;
                 case NTCursors.OpenHand: SetCursorToOpenHand(); return true;
                 case NTCursors.ClosedHand: SetCursorToClosedHand(); return true;
                 default: return false;
