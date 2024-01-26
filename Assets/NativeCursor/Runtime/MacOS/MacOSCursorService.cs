@@ -17,6 +17,9 @@ namespace Riten.Native.Cursors
 
         [DllImport("CursorWrapper")]
         private static extern void SetCursorToOpenHand();
+        
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToClosedHand();
 
         [DllImport("CursorWrapper")]
         private static extern void SetCursorToResizeLeftRight();
@@ -39,6 +42,9 @@ namespace Riten.Native.Cursors
         [DllImport("CursorWrapper")]
         private static extern void SetCursorToPointingHand();
         
+        [DllImport("CursorWrapper")]
+        private static extern void SetCursorToBusy();
+        
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Setup()
         {
@@ -49,17 +55,21 @@ namespace Riten.Native.Cursors
         {
             switch (cursor)
             {
+                case NTCursors.Default:
                 case NTCursors.Arrow: SetCursorToArrow(); return true;
+                
                 case NTCursors.IBeam: SetCursorToIBeam(); return true;
                 case NTCursors.Crosshair: SetCursorToCrosshair(); return true;
                 case NTCursors.Link: SetCursorToPointingHand(); return true;
-                case NTCursors.Busy: SetCursorToOpenHand(); return true;
+                case NTCursors.Busy: SetCursorToBusy(); return true;
                 case NTCursors.Invalid: SetCursorToOperationNotAllowed(); return true;
                 case NTCursors.ResizeVertical: SetCursorToResizeUpDown(); return true;
                 case NTCursors.ResizeHorizontal: SetCursorToResizeLeftRight(); return true;
                 case NTCursors.ResizeDiagonalLeft: SetCursorToResizeUp(); return true;
                 case NTCursors.ResizeDiagonalRight: SetCursorToResizeDown(); return true;
                 case NTCursors.ResizeAll: SetCursorToContextualMenu(); return true;
+                case NTCursors.OpenHand: SetCursorToOpenHand(); return true;
+                case NTCursors.ClosedHand: SetCursorToClosedHand(); return true;
                 default: return false;
             }
         }

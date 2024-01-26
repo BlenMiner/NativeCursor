@@ -14,6 +14,8 @@ namespace Riten.Native.Cursors
         ResizeDiagonalLeft,
         ResizeDiagonalRight,
         ResizeAll,
+        OpenHand,
+        ClosedHand
     }
     
     public interface ICursorService
