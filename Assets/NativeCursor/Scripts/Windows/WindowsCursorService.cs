@@ -11,7 +11,7 @@ namespace Riten.Native.Cursors
     {
         private const uint IDC_ARROW = 32512;        // Normal select
         private const uint IDC_IBEAM = 32513;        // Text select
-        private const uint IDC_WAIT = 32514;         // Busy
+        private const uint IDC_WAIT = 32650;         // Busy
         private const uint IDC_CROSS = 32515;        // Precision select
         private const uint IDC_SIZENWSE = 32642;     // Diagonal resize 1
         private const uint IDC_SIZENESW = 32643;     // Diagonal resize 2
@@ -67,7 +67,11 @@ namespace Riten.Native.Cursors
                 NTCursors.ResizeAll => IDC_SIZEALL,
                 NTCursors.Busy => IDC_WAIT,
                 NTCursors.Invalid => IDC_NO,
-                _ => IDC_ARROW
+                
+                NTCursors.OpenHand => 32516,
+                NTCursors.ClosedHand => IDC_HAND,
+                
+                _ => throw new ArgumentOutOfRangeException(nameof(nativeCursorName), nativeCursorName, null)
             });
             
             _cursors.Add(nativeCursorName, cursor);

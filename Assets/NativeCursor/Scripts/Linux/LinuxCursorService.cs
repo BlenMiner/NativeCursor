@@ -31,6 +31,9 @@ namespace Riten.Native.Cursors
         
         [DllImport("libX11")]
         static extern int XDefineCursor(IntPtr display, IntPtr window, IntPtr cursor);
+        
+        [DllImport("libXcursor")]
+        private static extern IntPtr XcursorLibraryLoadCursor(IntPtr display, string cursorName);
 
         [DllImport("libX11")]
         static extern int XFlush(IntPtr display);
@@ -46,35 +49,49 @@ namespace Riten.Native.Cursors
         private const uint XC_bottom_left_corner = 12;      // ResizeDiagonalLeft
         private const uint XC_bottom_right_corner = 14;     // ResizeDiagonalRight
         private const uint XC_fleur = 52;                   // ResizeAll
+        private const uint XC_hand2 = 60;                   // DragDrop
+        private const uint XC_center_ptr = 22;                // OpenHand
 
         readonly Dictionary<NTCursors, IntPtr> _cursors = new ();
 
         private IntPtr _display;
         private IntPtr _window;
+
+        IntPtr TryLoad(string cursorName, uint fallback)
+        {
+            var cursor = XcursorLibraryLoadCursor(_display, cursorName);
+            return cursor != IntPtr.Zero ? cursor : XCreateFontCursor(_display, fallback);
+        }
+        
+        IntPtr Load(uint cursor)
+        {
+            return XCreateFontCursor(_display, cursor);
+        }
         
         IntPtr LoadCursor(NTCursors nativeCursor)
         {
             if (_cursors.TryGetValue(nativeCursor, out var cursor))
                 return cursor;
             
-            var shape = nativeCursor switch
+            cursor = nativeCursor switch
             {
-                NTCursors.Default => XC_arrow,
-                NTCursors.Arrow => XC_arrow,
-                NTCursors.IBeam => XC_xterm,
-                NTCursors.Crosshair => XC_crosshair,
-                NTCursors.Link => XC_hand1,
-                NTCursors.Busy => XC_watch,
-                NTCursors.Invalid => XC_X_cursor,
-                NTCursors.ResizeVertical => XC_sb_v_double_arrow,
-                NTCursors.ResizeHorizontal => XC_sb_h_double_arrow,
-                NTCursors.ResizeDiagonalLeft => XC_bottom_left_corner,
-                NTCursors.ResizeDiagonalRight => XC_bottom_right_corner,
-                NTCursors.ResizeAll => XC_fleur,
+                NTCursors.Default => Load(XC_arrow),
+                NTCursors.Arrow => Load(XC_arrow),
+                NTCursors.IBeam => Load(XC_xterm),
+                NTCursors.Crosshair => Load(XC_crosshair),
+                NTCursors.Link => Load(XC_hand2),
+                NTCursors.Busy => Load(XC_watch),
+                NTCursors.Invalid => Load(XC_X_cursor),
+                NTCursors.ResizeVertical => Load(XC_sb_v_double_arrow),
+                NTCursors.ResizeHorizontal => Load(XC_sb_h_double_arrow),
+                NTCursors.ResizeDiagonalLeft => Load(XC_bottom_left_corner),
+                NTCursors.ResizeDiagonalRight => Load(XC_bottom_right_corner),
+                NTCursors.ResizeAll => Load(XC_fleur),
+                NTCursors.OpenHand => Load(XC_hand1),
+                NTCursors.ClosedHand => Load(XC_hand1),
                 _ => throw new ArgumentOutOfRangeException(nameof(cursor), cursor, null)
             };
             
-            cursor = XCreateFontCursor(_display, shape);
             _cursors.Add(nativeCursor, cursor);
             return cursor;
         }
@@ -103,10 +120,13 @@ namespace Riten.Native.Cursors
         public bool SetCursor(NTCursors nativeCursorName)
         {
             var cursor = LoadCursor(nativeCursorName);
-            
+
             if (cursor == IntPtr.Zero)
+            {
+                XFlush(_display);
                 return false;
-            
+            }
+
             XDefineCursor(_display, _window, cursor);
             XFlush(_display);
             return true;
