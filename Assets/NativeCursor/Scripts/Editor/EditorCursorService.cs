@@ -31,7 +31,7 @@ namespace Riten.Native.Cursors.Editor
             }
             catch
             {
-                var macos = Resources.Load<CursorPack>("MacOS");
+                var macos = Resources.Load<CursorPack>("CursorPacks/MacOS");
 
                 NativeCursor.SetService(macos == null ? null : new VirtualCursorService(macos));
                 NativeCursor.SetCursor(NTCursors.Arrow);
