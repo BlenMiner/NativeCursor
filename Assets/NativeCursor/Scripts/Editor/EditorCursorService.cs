@@ -75,7 +75,7 @@ namespace Riten.Native.Cursors.Editor
             var sprite = Resources.Load<Sprite>("MacOS/" + text);
             var texture = sprite.texture;
             _loadedCursors.Add(text, sprite);
-            
+
             Cursor.SetCursor(texture, sprite.pivot, CursorMode.Auto);
         }
 
