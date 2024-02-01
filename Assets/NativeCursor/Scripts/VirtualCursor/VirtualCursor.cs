@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Riten.Native.Cursors
 {
-    [CreateAssetMenu(fileName = "VirtualCursor", menuName = "Native Cursor/Virtual Cursor", order = 1)]
+    [CreateAssetMenu(fileName = "VirtualCursor", menuName = "Native Cursor/Virtual Cursor")]
     public class VirtualCursor : ScriptableObject
     {
         public Texture2D texture;

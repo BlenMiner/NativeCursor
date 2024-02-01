@@ -66,8 +66,23 @@ namespace Riten.Native.Cursors.Editor
 
             GUILayout.Label("Preview", EditorStyles.boldLabel);
 
-            _target.texture = (Texture2D)EditorGUILayout.ObjectField("Texture", _target.texture, typeof(Texture2D), false);
-            _target.hotspot = EditorGUILayout.Vector2Field("Hotspot", _target.hotspot);
+            var text = (Texture2D)EditorGUILayout.ObjectField("Texture", _target.texture, typeof(Texture2D), false);
+            
+            if (text != _target.texture)
+            {
+                Undo.RecordObject(_target, "Change texture");
+                _target.texture = text;
+                EditorUtility.SetDirty(_target);
+            }
+            
+            var newHp = EditorGUILayout.Vector2Field("Hotspot", _target.hotspot);
+            
+            if (!_dragging && newHp != _target.hotspot)
+            {
+                Undo.RecordObject(_target, "Change hotspot");
+                _target.hotspot = newHp;
+                EditorUtility.SetDirty(_target);
+            }
             
             RefreshTexture();
 
@@ -116,11 +131,17 @@ namespace Riten.Native.Cursors.Editor
                 }
 
                 if (!_dragging && Event.current.type == EventType.MouseDown)
+                {
                     _dragging = true;
+                    Undo.RecordObject(_target, "Change hotspot");
+                }
             }
 
             if (_dragging && Event.current.type == EventType.MouseUp)
+            {
                 _dragging = false;
+                EditorUtility.SetDirty(_target);
+            }
 
             Handles.color = Color.red;
             Handles.DrawSolidArc(

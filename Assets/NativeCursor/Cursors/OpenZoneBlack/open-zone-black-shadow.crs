@@ -1,0 +1,42 @@
+﻿[Arrow]
+Path=Arrow Normal Select.cur
+
+[Help]
+Path=Arrow Help Select.cur
+
+[Wait]
+Path=Arrow Busy.ani
+
+[Crosshair]
+Path=Precision Select.cur
+
+[IBeam]
+Path=Horizontal Text Select.cur
+
+[NWPen]
+Path=Pencil Handwriting.cur
+
+[No]
+Path=Pirate.cur
+
+[SizeNS]
+Path=Vertical Resize.cur
+
+[SizeWE]
+Path=Horizontal Resize.cur
+
+[SizeNWSE]
+Path=Diagonal Resize 1.cur
+
+[SizeNESW]
+Path=Diagonal Resize 2.cur
+
+[SizeAll]
+Path=Move.cur
+
+[UpArrow]
+Path=Up Arrow or Alternate Select.cur
+
+[Hand]
+Path=Hand Link Select.cur
+

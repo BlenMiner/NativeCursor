@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using HarmonyLib;
+using Riten.Native.Cursors.Virtual;
 using UnityEditor;
 using UnityEngine;
 
@@ -20,21 +20,21 @@ namespace Riten.Native.Cursors.Editor
     public class EditorCursorService : ICursorService
     {
         Harmony _harmony;
-        private bool _patched;
 
         private void OnEnable()
         {
             _harmony = new Harmony("com.riten.nativecursor");
-
+            
             try
             {
                 _harmony.PatchAll();
-                _patched = true;
             }
             catch
             {
-                _patched = false;
-                SetCursor(NTCursors.Default);
+                var macos = Resources.Load<CursorPack>("MacOS");
+
+                NativeCursor.SetService(macos == null ? null : new VirtualCursorService(macos));
+                NativeCursor.SetCursor(NTCursors.Arrow);
             }
         }
 
@@ -48,8 +48,8 @@ namespace Riten.Native.Cursors.Editor
         static void Setup()
         {
             var service = new EditorCursorService();
-            service.OnEnable();
             NativeCursor.SetService(service);
+            service.OnEnable();
 
             EditorApplication.playModeStateChanged += service.OnPlayModeStateChanged;
         }
@@ -62,57 +62,8 @@ namespace Riten.Native.Cursors.Editor
                 OnDisable();
         }
 
-        readonly Dictionary<string, Sprite> _loadedCursors = new ();
-
-        void LoadCursor(string text)
-        {
-            if (_loadedCursors.TryGetValue(text, out var cursor))
-            {
-                Cursor.SetCursor(cursor.texture, cursor.pivot, CursorMode.Auto);
-                return;
-            }
-            
-            var sprite = Resources.Load<Sprite>("MacOS/" + text);
-            var texture = sprite.texture;
-            _loadedCursors.Add(text, sprite);
-
-            Cursor.SetCursor(texture, sprite.pivot, CursorMode.Auto);
-        }
-
-        private bool SetCustomCursor(NTCursors cursor)
-        {
-            switch (cursor)
-            {
-                case NTCursors.Default:
-                case NTCursors.Arrow: LoadCursor("default"); break;
-                case NTCursors.Link: LoadCursor("pointer"); break;
-                case NTCursors.IBeam: LoadCursor("textcursor"); break;
-                case NTCursors.Crosshair: LoadCursor("cross"); break;
-                case NTCursors.ResizeVertical: LoadCursor("resizenorthsouth"); break;
-                case NTCursors.ResizeHorizontal: LoadCursor("resizewesteast"); break;
-                case NTCursors.Busy: LoadCursor("beachball"); break;
-                case NTCursors.Invalid: LoadCursor("notallowed"); break;
-                case NTCursors.ResizeDiagonalLeft: LoadCursor("resizenorthwestsoutheast"); break;
-                case NTCursors.ResizeDiagonalRight: LoadCursor("resizenortheastsouthwest"); break;
-                case NTCursors.ResizeAll: LoadCursor("move"); break;
-                case NTCursors.OpenHand: LoadCursor("handopen"); break;
-                case NTCursors.ClosedHand: LoadCursor("handgrabbing"); break;
-                
-                default:
-                    LoadCursor("default");
-                    break;
-            }
-
-            return true;
-        }
-        
         public bool SetCursor(NTCursors ntCursorName)
         {
-            if (!_patched)
-            {
-                return SetCustomCursor(ntCursorName);
-            }
-            
             EditorCursorPatch.targetCursor = ntCursorName switch
             {
                 NTCursors.Default => null,
@@ -137,12 +88,6 @@ namespace Riten.Native.Cursors.Editor
 
         public void ResetCursor()
         {
-            if (!_patched)
-            {
-                SetCustomCursor(NTCursors.Default);
-                return;
-            }
-            
             EditorCursorPatch.targetCursor = null;
         }
     }
