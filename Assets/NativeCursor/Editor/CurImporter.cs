@@ -182,8 +182,11 @@ namespace Riten.Native.Cursors.Editor.Importers
                 // Skip mask
                 br.BaseStream.Seek(begin + cursors[i].fileOffset + cursor.sizeInBytes, SeekOrigin.Begin);
                 
-                var texture = new Texture2D(cursor.width, cursor.height, TextureFormat.RGBA32, false);
-
+                var texture = new Texture2D(cursor.width, cursor.height, TextureFormat.RGBA32, false)
+                {
+                    alphaIsTransparency = true
+                };
+                
                 texture.SetPixels32(pixels);
                 texture.filterMode = FilterMode.Bilinear;
                 texture.Apply();

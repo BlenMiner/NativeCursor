@@ -1,3 +1,4 @@
+using Riten.Native.Cursors.Virtual;
 using UnityEngine;
 
 namespace Riten.Native.Cursors
@@ -5,8 +6,16 @@ namespace Riten.Native.Cursors
     public static class NativeCursor
     {
         static ICursorService _instance;
+
+        private static ICursorService _defaultService;
+        private static VirtualCursorService _vcs;
         
         public static string ServiceName => _instance == null ? "NULL" : _instance.GetType().Name;
+        
+        public static void SetFallbackService(ICursorService service)
+        {
+            _defaultService = service;
+        }
         
         /// <summary>
         /// Set custom cursor service.
@@ -15,8 +24,12 @@ namespace Riten.Native.Cursors
         /// </summary>
         public static void SetService(ICursorService service)
         {
-            _instance?.SetCursor(NTCursors.Default);
+            if (_instance == service) 
+                return;
+            
+            _instance?.ResetCursor();
             _instance = service;
+            _instance?.SetCursor(NTCursors.Default);
         }
         
         public static bool SetCursor(NTCursors ntCursor)
@@ -32,11 +45,31 @@ namespace Riten.Native.Cursors
         {
             if (cursorPack == null)
             {
-                Debug.LogError("CursorPack is null, ignoring call.");
+                SetService(_defaultService);
                 return;
             }
             
-            SetService(new Virtual.VirtualCursorService(cursorPack));
+            if (!_vcs)
+            {
+                var go = new GameObject("VirtualCursorService")
+                {
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+                
+                Object.DontDestroyOnLoad(go);
+                
+                _vcs = go.AddComponent<VirtualCursorService>();
+            }
+            
+            _vcs.UpdatePack(cursorPack);
+            
+            SetService(_vcs);
+        }
+
+        public static void ClearCursorPack()
+        {
+            SetCursorPack(null);
+            Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
         }
         
         /// <summary>

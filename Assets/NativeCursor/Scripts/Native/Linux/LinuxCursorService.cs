@@ -17,7 +17,10 @@ namespace Riten.Native.Cursors
                 hideFlags = HideFlags.HideAndDontSave
             };
             DontDestroyOnLoad(go);
-            NativeCursor.SetService(go.AddComponent<LinuxCursorService>());
+
+            var service = go.AddComponent<LinuxCursorService>();
+            NativeCursor.SetFallbackService(service);
+            NativeCursor.SetService(service);
         }
         
         [DllImport("libX11")]
@@ -31,9 +34,6 @@ namespace Riten.Native.Cursors
         
         [DllImport("libX11")]
         static extern int XDefineCursor(IntPtr display, IntPtr window, IntPtr cursor);
-        
-        [DllImport("libXcursor")]
-        private static extern IntPtr XcursorLibraryLoadCursor(IntPtr display, string cursorName);
 
         [DllImport("libX11")]
         static extern int XFlush(IntPtr display);
@@ -50,18 +50,11 @@ namespace Riten.Native.Cursors
         private const uint XC_bottom_right_corner = 14;     // ResizeDiagonalRight
         private const uint XC_fleur = 52;                   // ResizeAll
         private const uint XC_hand2 = 60;                   // DragDrop
-        private const uint XC_center_ptr = 22;                // OpenHand
 
         readonly Dictionary<NTCursors, IntPtr> _cursors = new ();
 
         private IntPtr _display;
         private IntPtr _window;
-
-        IntPtr TryLoad(string cursorName, uint fallback)
-        {
-            var cursor = XcursorLibraryLoadCursor(_display, cursorName);
-            return cursor != IntPtr.Zero ? cursor : XCreateFontCursor(_display, fallback);
-        }
         
         IntPtr Load(uint cursor)
         {

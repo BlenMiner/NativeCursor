@@ -20,7 +20,7 @@ namespace Riten.Native.Cursors.Editor.Importers
     [ScriptedImporter(1, "ani")]
     public class AniImporter : ScriptedImporter
     {
-        [SerializeField] float _animSpeedMultiplier = 1f;
+        [SerializeField] float _animSpeedMultiplier = 5f;
         
         public override void OnImportAsset(AssetImportContext ctx)
         {
@@ -44,11 +44,23 @@ namespace Riten.Native.Cursors.Editor.Importers
                 var frame = data.frames[i];
                 var cursor = ScriptableObject.CreateInstance<VirtualCursor>();
                 
+                int smallestWidth = 0;
+                int smallestValue = frame.cursors[0].texture.width;
+                
+                for (int j = 1; j < frame.cursors.Count; ++j)
+                {
+                    if (frame.cursors[j].texture.width < smallestValue)
+                    {
+                        smallestValue = frame.cursors[j].texture.width;
+                        smallestWidth = j;
+                    }
+                }
+                
                 cursor.name = $"cursor_{i}";
-                cursor.texture = frame.cursors[^1].texture;
+                cursor.texture = frame.cursors[smallestWidth].texture;
                 cursor.texture.name = $"cursor_{i}_texture";
-                cursor.isMask = frame.cursors[^1].isMask;
-                cursor.hotspot = frame.cursors[^1].hotspot;
+                cursor.isMask = frame.cursors[smallestWidth].isMask;
+                cursor.hotspot = frame.cursors[smallestWidth].hotspot;
                 
                 ctx.AddObjectToAsset($"cursor_{i}_texture", cursor.texture, cursor.texture);
                 ctx.AddObjectToAsset($"cursor_{i}", cursor, cursor.texture);

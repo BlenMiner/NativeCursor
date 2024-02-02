@@ -7,7 +7,7 @@ namespace Riten.Native.Cursors.UI
     {
         [SerializeField] private NTCursors _cursor;
         [Tooltip("Higher priority means this cursor will override other cursors with lower priority")]
-        [SerializeField] private int _priority = -1;
+        [SerializeField] private int _priority = -2;
 
         public NTCursors Cursor
         {

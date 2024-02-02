@@ -12,5 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b61ad9b92ebb6814398693f1948d7d44, type: 3}
   m_Name: resizenorthwestsoutheast
   m_EditorClassIdentifier: 
-  texture: {fileID: 2800000, guid: 5e05628c01d06cf40a76ced8ea2d9fc3, type: 3}
-  hotspot: {x: 0.5, y: 0.5}
+  <isMask>k__BackingField: 0
+  <texture>k__BackingField: {fileID: 2800000, guid: 5e05628c01d06cf40a76ced8ea2d9fc3, type: 3}
+  <hotspot>k__BackingField: {x: 0.5, y: 0.5}
+  <backgroundColor>k__BackingField:
+    serializedVersion: 2
+    rgba: 0
+  <foregroundColor>k__BackingField:
+    serializedVersion: 2
+    rgba: 0

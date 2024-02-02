@@ -1,5 +1,4 @@
 using HarmonyLib;
-using Riten.Native.Cursors.Virtual;
 using UnityEditor;
 using UnityEngine;
 
@@ -33,8 +32,7 @@ namespace Riten.Native.Cursors.Editor
             {
                 var macos = Resources.Load<CursorPack>("CursorPacks/MacOS");
 
-                NativeCursor.SetService(macos == null ? null : new VirtualCursorService(macos));
-                NativeCursor.SetCursor(NTCursors.Arrow);
+                NativeCursor.SetCursorPack(macos);
             }
         }
 
@@ -48,7 +46,10 @@ namespace Riten.Native.Cursors.Editor
         static void Setup()
         {
             var service = new EditorCursorService();
+            
+            NativeCursor.SetFallbackService(service);
             NativeCursor.SetService(service);
+            
             service.OnEnable();
 
             EditorApplication.playModeStateChanged += service.OnPlayModeStateChanged;

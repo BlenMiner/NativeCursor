@@ -15,7 +15,7 @@ MonoBehaviour:
   default: {fileID: 5441368309641950716, guid: 88e64388c99251d4db7054f0ee633d54, type: 3}
   pointer: {fileID: 5441368309641950716, guid: 7782c1ba61d9b05428bee43be845a54d, type: 3}
   ibeam: {fileID: 5441368309641950716, guid: 3d76e0ad5fc9f4d469d0a6f80919ab7c, type: 3}
-  wait: {fileID: 0}
+  wait: {fileID: 3135074058791314512, guid: c613c584a5af22d4ea08d8b106e0dd94, type: 3}
   cross: {fileID: 5441368309641950716, guid: a6a75aa9bcc5e204a926a0f275f20f83, type: 3}
   grab: {fileID: 5441368309641950716, guid: c7abe71f2d243e344ac12aac39440f6f, type: 3}
   grabbing: {fileID: 5441368309641950716, guid: c7abe71f2d243e344ac12aac39440f6f, type: 3}

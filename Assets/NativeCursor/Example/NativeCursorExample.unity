@@ -594,7 +594,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cursor: 10
-  _priority: -1
+  _priority: -2
 --- !u!1 &686152895
 GameObject:
   m_ObjectHideFlags: 0
@@ -684,7 +684,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cursor: 9
-  _priority: -1
+  _priority: -2
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -983,7 +983,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &962982065
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -996,7 +996,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d143376dff86784c833dfcffeeb51b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _cursorPack: {fileID: 11400000, guid: ab14c6fc3b999b84eb14a6a0465a153f, type: 2}
+  _cursorPack: {fileID: 11400000, guid: ffbb6d5f3ee32bc4e8cf5974c270f8a8, type: 2}
 --- !u!4 &962982066
 Transform:
   m_ObjectHideFlags: 0
@@ -1360,7 +1360,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cursor: 7
-  _priority: -1
+  _priority: -2
 --- !u!1 &1372943548
 GameObject:
   m_ObjectHideFlags: 0
@@ -1555,7 +1555,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cursor: 8
-  _priority: -1
+  _priority: -2
 --- !u!1 &1494917677
 GameObject:
   m_ObjectHideFlags: 0
@@ -1645,7 +1645,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cursor: 8
-  _priority: -1
+  _priority: -2
 --- !u!1 &1596241170
 GameObject:
   m_ObjectHideFlags: 0
@@ -1735,7 +1735,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cursor: 10
-  _priority: -1
+  _priority: -2
 --- !u!1 &1649669096
 GameObject:
   m_ObjectHideFlags: 0
@@ -1825,7 +1825,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cursor: 7
-  _priority: -1
+  _priority: -2
 --- !u!1 &1702989030
 GameObject:
   m_ObjectHideFlags: 0
@@ -1919,7 +1919,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cursor: 12
-  _priority: -2
+  _priority: -1
 --- !u!114 &1702989035
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2182,7 +2182,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cursor: 9
-  _priority: -1
+  _priority: -2
 --- !u!1 &2037935009
 GameObject:
   m_ObjectHideFlags: 0

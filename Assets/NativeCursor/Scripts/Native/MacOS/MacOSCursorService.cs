@@ -37,9 +37,6 @@ namespace Riten.Native.Cursors
         private static extern void SetCursorToOperationNotAllowed();
 
         [DllImport("CursorWrapper")]
-        private static extern void SetCursorToContextualMenu();
-
-        [DllImport("CursorWrapper")]
         private static extern void SetCursorToPointingHand();
         
         [DllImport("CursorWrapper")]
@@ -48,7 +45,9 @@ namespace Riten.Native.Cursors
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Setup()
         {
-            NativeCursor.SetService(new MacOSCursorService());
+            var service = new MacOSCursorService();
+            NativeCursor.SetFallbackService(service);
+            NativeCursor.SetService(service);
         }
 
         public bool SetCursor(NTCursors cursor)

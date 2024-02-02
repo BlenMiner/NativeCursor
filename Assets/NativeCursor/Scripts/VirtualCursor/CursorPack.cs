@@ -5,23 +5,23 @@ namespace Riten.Native.Cursors
     [CreateAssetMenu(fileName = "CursorPack", menuName = "Native Cursor/Cursor Pack")]
     public class CursorPack : ScriptableObject
     {
-        public VirtualCursor @default;
-        public VirtualCursor pointer;
-        public VirtualCursor ibeam;
-        public VirtualCursor wait;
-        public VirtualCursor cross;
+        public VirtualCursorBase @default;
+        public VirtualCursorBase pointer;
+        public VirtualCursorBase ibeam;
+        public VirtualCursorBase wait;
+        public VirtualCursorBase cross;
         [Space]
-        public VirtualCursor grab;
-        public VirtualCursor grabbing;
-        public VirtualCursor denied;
+        public VirtualCursorBase grab;
+        public VirtualCursorBase grabbing;
+        public VirtualCursorBase denied;
         [Space]
-        public VirtualCursor move;
-        public VirtualCursor resizeHorizontal;
-        public VirtualCursor resizeVertical;
-        public VirtualCursor resizeDiagonal1;
-        public VirtualCursor resizeDiagonal2;
+        public VirtualCursorBase move;
+        public VirtualCursorBase resizeHorizontal;
+        public VirtualCursorBase resizeVertical;
+        public VirtualCursorBase resizeDiagonal1;
+        public VirtualCursorBase resizeDiagonal2;
 
-        public bool SetCursor(NTCursors ntCursor)
+        public VirtualCursorBase GetCursor(NTCursors ntCursor)
         {
             var cursor = ntCursor switch
             {
@@ -42,14 +42,20 @@ namespace Riten.Native.Cursors
                 _ => null
             };
 
-            if (cursor == null)
-            {
-                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
-                return true;
-            }
-
-            Cursor.SetCursor(cursor.texture, cursor.hotspot * new Vector2(cursor.texture.width, cursor.texture.height), CursorMode.Auto);
-            return true;
+            return cursor;
         }
+        
+        /*public bool SetCursorFrame(NTCursors ntCursor, int frame)
+        {
+            var frameData = cursor.frames[frame];
+            
+            Cursor.SetCursor(
+                frameData.texture, 
+                frameData.hotspot * new Vector2(frameData.texture.width, frameData.texture.height),
+                CursorMode.Auto
+            );
+            
+            return true;
+        }*/
     }
 }

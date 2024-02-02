@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: 4c4145dcb7dbfe444b092419772b99cb
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 768a102ac262e5b4692884427dca8684, type: 3}
+  _animSpeedMultiplier: 1

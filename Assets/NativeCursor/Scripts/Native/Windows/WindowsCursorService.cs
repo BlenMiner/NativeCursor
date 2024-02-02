@@ -37,7 +37,11 @@ namespace Riten.Native.Cursors
                 hideFlags = HideFlags.HideAndDontSave
             };
             DontDestroyOnLoad(go);
-            NativeCursor.SetService(go.AddComponent<WindowsCursorService>());
+
+            var service = go.AddComponent<WindowsCursorService>();
+
+            NativeCursor.SetFallbackService(service);
+            NativeCursor.SetService(service);
         }
         
         NTCursors? _currentCursor;
