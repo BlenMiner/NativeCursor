@@ -10,7 +10,7 @@ namespace Riten.Native.Cursors.Virtual
 
         private int _frame;
         private float _fps;
-        
+
         public void UpdatePack(CursorPack pack)
         {
             _cursorPack = pack;
@@ -41,24 +41,32 @@ namespace Riten.Native.Cursors.Virtual
         }
 
         private float _timer;
+        private readonly WaitForEndOfFrame frameEnd = new ();
 
-        private void Update()
+        void Update()
         {
-            if (!_activeCursor || !_activeCursor.isAnimated || _activeCursor.frames.Length == 0) return;
-            
+            /*if (_activeCursor && _activeCursor.isMask)
+            {
+                DoMaskedPostProcess();
+                continue;
+            }*/
+
+            if (!_activeCursor || !_activeCursor.isAnimated || _activeCursor.frames.Length == 0) 
+                return;
+        
             if (_timer < _fps)
             {
                 _timer += Time.deltaTime;
                 return;
             }
-            
+        
             _frame = (_frame + 1) % _activeCursor.frames.Length;
             _timer = 0;
 
-            DoCursorUpdate();
+            DoCursorUpdate(true);
         }
 
-        private void DoCursorUpdate()
+        private void DoCursorUpdate(bool pp = false)
         {
             if (!_activeCursor) return;
 
@@ -86,6 +94,83 @@ namespace Riten.Native.Cursors.Virtual
                     CursorMode.Auto
                 );
             }
+            
+            /*if (pp && _activeCursor.isMask)
+                DoMaskedPostProcess();*/
         }
+        
+        Texture2D _maskTexture;
+        Texture2D _screenTexture;
+
+        private void CaptureScreen()
+        {
+            _screenTexture ??= new Texture2D(_maskTexture.width, _maskTexture.height, TextureFormat.RGBA32, false);
+            
+            if (_screenTexture.width != _maskTexture.width || _screenTexture.height != _maskTexture.height)
+                _screenTexture.Reinitialize(_maskTexture.width, _maskTexture.height, TextureFormat.RGBA32, false);
+
+            var pos = Input.mousePosition;
+            var hot = _activeCursor.hotspot * new Vector2(_maskTexture.width, _maskTexture.height);
+            var region = new Rect(pos.x - hot.x, pos.y - hot.y, _screenTexture.width, _screenTexture.height);
+            
+            _screenTexture.ReadPixels(region, 0, 0, false);
+            _screenTexture.Apply();
+        }
+
+        private void OnGUI()
+        {
+            GUILayout.Label($"FPS: {1f / Time.deltaTime}");
+            GUILayout.Label(_maskTexture);
+            GUILayout.Label(_screenTexture);
+        }
+
+        /*private void DoMaskedPostProcess()
+        {
+            var texture = _activeCursor.texture;
+            var pixels = texture.GetPixels32();
+
+            if (!_maskTexture)
+            {
+                _maskTexture = new Texture2D(texture.width, texture.height, TextureFormat.RGBA32, false)
+                {
+                    alphaIsTransparency = true
+                };
+            }
+            else if (_maskTexture.width != texture.width || _maskTexture.height != texture.height)
+            {
+                _maskTexture.Reinitialize(texture.width, texture.height, TextureFormat.RGBA32, false);
+                _maskTexture.alphaIsTransparency = true;
+            }
+            
+            CaptureScreen();
+            
+            var screen = _screenTexture.GetPixels32();
+
+            for (var i = 0; i < pixels.Length; i++)
+            {
+                var pixel = pixels[i];
+
+                if (pixel.a == 255)
+                {
+                    var screenPixel = screen[i];
+                    screenPixel.r = (byte)(255 - screenPixel.r);
+                    screenPixel.g = (byte)(255 - screenPixel.g);
+                    screenPixel.b = (byte)(255 - screenPixel.b);
+                    pixels[i] = screenPixel;
+                }
+            }
+            
+            _maskTexture.SetPixels32(pixels);
+            _maskTexture.Apply();
+            
+            Cursor.SetCursor(
+                _maskTexture,
+                new Vector2(
+                    _activeCursor.hotspot.x * _maskTexture.width, 
+                    _activeCursor.hotspot.y * _maskTexture.height
+                ),
+                CursorMode.ForceSoftware
+            );
+        }*/
     }
 }

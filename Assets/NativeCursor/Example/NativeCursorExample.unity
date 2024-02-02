@@ -983,7 +983,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &962982065
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -996,7 +996,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d143376dff86784c833dfcffeeb51b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _cursorPack: {fileID: 11400000, guid: a79fc8fb8266dd94b91d70248197f425, type: 2}
+  _cursorPack: {fileID: 11400000, guid: ab14c6fc3b999b84eb14a6a0465a153f, type: 2}
 --- !u!4 &962982066
 Transform:
   m_ObjectHideFlags: 0
@@ -1048,7 +1048,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.09433961, g: 0.09433961, b: 0.09433961, a: 0}
+  m_BackGroundColor: {r: 0.09433961, g: 0.09433961, b: 0.09433961, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
