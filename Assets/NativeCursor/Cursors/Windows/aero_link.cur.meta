@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 546e94ab45d9cee498e822d9b36c08bc
+guid: 7782c1ba61d9b05428bee43be845a54d
 ScriptedImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -7,5 +7,6 @@ ScriptedImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-  script: {fileID: 11500000, guid: 768a102ac262e5b4692884427dca8684, type: 3}
-  _animSpeedMultiplier: 4
+  script: {fileID: 11500000, guid: 2336aae621111594abd70506a35a1ed0, type: 3}
+  _resize: 0
+  _resizeTarget: 32

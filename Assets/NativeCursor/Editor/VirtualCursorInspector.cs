@@ -62,19 +62,26 @@ namespace Riten.Native.Cursors.Editor
         {
             if (!_target) return;
 
-            var width = Screen.width;
+            var width = Screen.width * 0.8f;
 
             GUILayout.Label("Preview", EditorStyles.boldLabel);
-
-            var text = (Texture2D)EditorGUILayout.ObjectField("Texture", _target.texture, typeof(Texture2D), false);
             
-            if (text != _target.texture)
+            if (_target.isMask)
             {
-                Undo.RecordObject(_target, "Change texture");
-                _target.texture = text;
-                EditorUtility.SetDirty(_target);
+                GUILayout.Label("This cursor is a mask");
             }
-            
+            else
+            {
+                var text = (Texture2D)EditorGUILayout.ObjectField("Texture", _target.texture, typeof(Texture2D), false);
+
+                if (text != _target.texture)
+                {
+                    Undo.RecordObject(_target, "Change texture");
+                    _target.texture = text;
+                    EditorUtility.SetDirty(_target);
+                }
+            }
+
             var newHp = EditorGUILayout.Vector2Field("Hotspot", _target.hotspot);
             
             if (!_dragging && newHp != _target.hotspot)
@@ -84,6 +91,27 @@ namespace Riten.Native.Cursors.Editor
                 EditorUtility.SetDirty(_target);
             }
             
+            if (_target.isMask)
+            {
+                var newBackColor = EditorGUILayout.ColorField("Background Color", _target.backgroundColor);
+
+                if (newBackColor != _target.backgroundColor)
+                {
+                    Undo.RecordObject(_target, "Change background color");
+                    _target.backgroundColor = newBackColor;
+                    EditorUtility.SetDirty(_target);
+                }
+
+                var newForeColor = EditorGUILayout.ColorField("Foreground Color", _target.foregroundColor);
+
+                if (newForeColor != _target.foregroundColor)
+                {
+                    Undo.RecordObject(_target, "Change foreground color");
+                    _target.foregroundColor = newForeColor;
+                    EditorUtility.SetDirty(_target);
+                }
+            }
+
             RefreshTexture();
 
             if (!_target.texture)
@@ -154,6 +182,8 @@ namespace Riten.Native.Cursors.Editor
 
             if (_dragging)
                 DragHotspot(textureRect);
+
+            GUILayout.Space(_adaptedTexture.width * 5);
 
             Repaint();
         }
