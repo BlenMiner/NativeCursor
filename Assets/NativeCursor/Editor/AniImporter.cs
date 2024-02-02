@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor.AssetImporters;
 using UnityEngine;
-// ReSharper disable UnusedVariable
 
 namespace Riten.Native.Cursors.Editor.Importers
 {
@@ -20,7 +19,33 @@ namespace Riten.Native.Cursors.Editor.Importers
     [ScriptedImporter(1, "ani")]
     public class AniImporter : ScriptedImporter
     {
-        [SerializeField] float _animSpeedMultiplier = 5f;
+        [SerializeField] float _animSpeedMultiplier = 10f;
+        [Space]
+        [SerializeField] bool _useTargetSize;
+        [SerializeField] Vector2Int _targetSize;
+        
+        static Texture2D Resize(Texture2D texture2D,int targetX,int targetY)
+        {
+            var rt=new RenderTexture(targetX, targetY,24, RenderTextureFormat.ARGB32, 4)
+            {
+                filterMode = FilterMode.Bilinear,
+                useMipMap = true,
+                antiAliasing = 4,
+                anisoLevel = 4,
+                autoGenerateMips = true
+            };
+            
+            RenderTexture.active = rt;
+            Graphics.Blit(texture2D,rt);
+            var result=new Texture2D(targetX,targetY,texture2D.format,false)
+            {
+                alphaIsTransparency = true,
+                filterMode = FilterMode.Bilinear
+            };
+            result.ReadPixels(new Rect(0,0,targetX,targetY),0,0);
+            result.Apply();
+            return result;
+        }
         
         public override void OnImportAsset(AssetImportContext ctx)
         {
@@ -49,15 +74,29 @@ namespace Riten.Native.Cursors.Editor.Importers
                 
                 for (int j = 1; j < frame.cursors.Count; ++j)
                 {
+                    if (frame.cursors[j].texture.width == _targetSize.x)
+                    {
+                        smallestWidth = j;
+                        break;
+                    }
+                    
                     if (frame.cursors[j].texture.width < smallestValue)
                     {
                         smallestValue = frame.cursors[j].texture.width;
                         smallestWidth = j;
                     }
                 }
+
+                if (_useTargetSize && frame.cursors[smallestWidth].texture.width != _targetSize.x)
+                {
+                    cursor.texture = Resize(frame.cursors[smallestWidth].texture, _targetSize.x, _targetSize.y);
+                }
+                else
+                {
+                    cursor.texture = frame.cursors[smallestWidth].texture;
+                }
                 
                 cursor.name = $"cursor_{i}";
-                cursor.texture = frame.cursors[smallestWidth].texture;
                 cursor.texture.name = $"cursor_{i}_texture";
                 cursor.isMask = frame.cursors[smallestWidth].isMask;
                 cursor.hotspot = frame.cursors[smallestWidth].hotspot;
@@ -89,7 +128,7 @@ namespace Riten.Native.Cursors.Editor.Importers
                 return false;
             }
 
-            int riffSize = br.ReadInt32();
+            br.ReadInt32();
             var riffType = br.ReadInt32();
 
             if (riffType != 0x4E4F4341)
@@ -108,15 +147,15 @@ namespace Riten.Native.Cursors.Editor.Importers
             
             br.ReadInt32();
             
-            var headerSize = br.ReadInt32();
+            br.ReadInt32();
             var numFrames = br.ReadInt32();
-            var numSteps = br.ReadInt32();
-            var width = br.ReadInt32();
-            var height = br.ReadInt32();
-            var bitCount = br.ReadInt32();
-            var numPlanes = br.ReadInt32();
+            br.ReadInt32();
+            br.ReadInt32();
+            br.ReadInt32();
+            br.ReadInt32();
+            br.ReadInt32();
             var displayRate = br.ReadInt32();
-            var flags = br.ReadInt32();
+            br.ReadInt32();
             
             var listIdentifier = br.ReadInt32();
             
@@ -126,8 +165,7 @@ namespace Riten.Native.Cursors.Editor.Importers
                 return false;
             }
             
-            var listSize = br.ReadInt32();
-            
+            br.ReadInt32();
             var frameIdentifier = br.ReadInt32();
             
             if (frameIdentifier != 0x6D617266)
@@ -156,7 +194,6 @@ namespace Riten.Native.Cursors.Editor.Importers
                 });
             }
             
-            var end = br.BaseStream.Position;
             var bytesLeft = br.BaseStream.Length - br.BaseStream.Position;
 
             if (bytesLeft == 0)
@@ -188,7 +225,7 @@ namespace Riten.Native.Cursors.Editor.Importers
                 return false;
             }
             
-            var iconSize = br.ReadInt32();
+            br.ReadInt32();
 
             if (!CurImporter.LoadCursorFromBinary(br, out result))
             {

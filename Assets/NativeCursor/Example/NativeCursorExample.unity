@@ -978,7 +978,7 @@ GameObject:
   - component: {fileID: 962982066}
   - component: {fileID: 962982065}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: Enable me & play with the pack!
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -996,7 +996,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d143376dff86784c833dfcffeeb51b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _cursorPack: {fileID: 11400000, guid: ffbb6d5f3ee32bc4e8cf5974c270f8a8, type: 2}
+  _cursorPack: {fileID: 11400000, guid: a79fc8fb8266dd94b91d70248197f425, type: 2}
 --- !u!4 &962982066
 Transform:
   m_ObjectHideFlags: 0

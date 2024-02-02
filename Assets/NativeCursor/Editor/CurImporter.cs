@@ -106,7 +106,32 @@ namespace Riten.Native.Cursors.Editor.Importers
                 var cursor = cursors[i];
                 
                 br.BaseStream.Seek(begin + cursors[i].fileOffset, SeekOrigin.Begin);
-                
+
+                if (cursor is { width: 0, height: 0 })
+                {
+                    var rawData = br.ReadBytes((int)cursor.sizeInBytes);
+                    var rawTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false) {
+                        alphaIsTransparency = true
+                    };
+                    
+                    rawTexture.LoadRawTextureData(rawData);
+                    rawTexture.Apply();
+                    
+                    results.Add(new CURSOR_RESULT
+                    {
+                        texture = rawTexture,
+                        isMask = false,
+                        backgroundColor = default,
+                        foregroundColor = default,
+                        hotspot = new Vector2(
+                            cursor.xhotspot / (float)cursor.width, 
+                            cursor.yhotspot / (float)cursor.height
+                        )
+                    });
+                    
+                    continue;
+                }
+
                 var sizeOfStruct = br.ReadUInt32();
                 
                 if (sizeOfStruct != 40) Debug.LogError($"BitmapInfoHeader size expected to be 40, was {sizeOfStruct}!");
@@ -125,59 +150,11 @@ namespace Riten.Native.Cursors.Editor.Importers
                 
                 var pixelCount = cursor.width * cursor.height;
                 var pixels = new Color32[pixelCount];
-                var isMask = false;
                 
                 Color32 backgroundColor = default;
                 Color32 foregroundColor = default;
 
-                switch (bitPetPixel)
-                {
-                    case 32:
-                    {
-                        for (int j = 0; j < pixelCount; ++j)
-                        {
-                            var b = br.ReadByte();
-                            var g = br.ReadByte();
-                            var r = br.ReadByte();
-                            var a = br.ReadByte();
-
-                            pixels[j] = new Color32(r, g, b, a);
-                        }
-
-                        break;
-                    }
-                    case 1:
-                    {
-                        isMask = true;
-
-                        backgroundColor = new Color32(br.ReadByte(), br.ReadByte(), br.ReadByte(), 255);
-                        br.ReadByte();
-                        foregroundColor = new Color32(br.ReadByte(), br.ReadByte(), br.ReadByte(), 255);
-                        br.ReadByte();
-
-                        var padding = (32 - cursor.width % 32) % 32;
-                        var values = br.ReadBytes((int)imageSizeInBytes);
-
-                        int pixelIdx = 0;
-
-                        for (int j = 0; j < imageSizeInBytes * 8; ++j)
-                        {
-                            int x = j % (cursor.width + padding);
-
-                            var idx = j / 8;
-                            var bit = 7 - j % 8;
-                            var val = (values[idx] >> bit) & 1;
-
-                            if (x < cursor.width)
-                            {
-                                pixels[pixelIdx++] = new Color32(255, 255, 255, val == 1 ? (byte)255 : (byte)0);
-                            }
-                        }
-
-                        break;
-                    }
-                    default: throw new System.NotImplementedException($"Bit per pixel {bitPetPixel} not implemented!");
-                }
+                var isMask = LoadPixelsData(br, bitPetPixel, pixels, cursor, imageSizeInBytes, ref backgroundColor, ref foregroundColor);
 
                 // Skip mask
                 br.BaseStream.Seek(begin + cursors[i].fileOffset + cursor.sizeInBytes, SeekOrigin.Begin);
@@ -206,6 +183,97 @@ namespace Riten.Native.Cursors.Editor.Importers
             
             result = results;
             return true;
+        }
+
+        private static bool LoadPixelsData(BinaryReader br, ushort bitPetPixel, IList<Color32> pixels,
+            CURSOR cursor, uint imageSizeInBytes, ref Color32 backgroundColor, ref Color32 foregroundColor)
+        {
+            var pixelCount = cursor.width * cursor.height;
+            bool isMask = false;
+            
+            switch (bitPetPixel)
+            {
+                case 32:
+                {
+                    for (int j = 0; j < pixelCount; ++j)
+                    {
+                        var b = br.ReadByte();
+                        var g = br.ReadByte();
+                        var r = br.ReadByte();
+                        var a = br.ReadByte();
+
+                        pixels[j] = new Color32(r, g, b, a);
+                    }
+
+                    break;
+                }
+                case 4:
+                {
+                    var padding = (32 - cursor.width % 32) % 32;
+                    int pixelIdx = 0;
+                    
+                    br.BaseStream.Seek(32/2*4, SeekOrigin.Current);
+                    
+                    for (int j = 0; j < pixelCount / 2; ++j)
+                    {
+                        int x = j % (cursor.width + padding);
+                        var val = br.ReadByte();
+                        
+                        var halfA = val >> 4;
+                        var halfB = val & 0x0F;
+                        
+                        var b0 = (halfA & 1)        == 1 ? (byte)255 : (byte)0;
+                        var b1 = ((halfA >> 1) & 1) == 1 ? (byte)255 : (byte)0;
+                        var b2 = ((halfA >> 2) & 1) == 1 ? (byte)255 : (byte)0;
+                        var b3 = ((halfA >> 3) & 1) == 1 ? (byte)255 : (byte)0;
+                        
+                        var b4 = (halfB & 1)        == 1 ? (byte)255 : (byte)0;
+                        var b5 = ((halfB >> 1) & 1) == 1 ? (byte)255 : (byte)0;
+                        var b6 = ((halfB >> 2) & 1) == 1 ? (byte)255 : (byte)0;
+                        var b7 = ((halfB >> 3) & 1) == 1 ? (byte)255 : (byte)0;
+
+                        if (x < cursor.width)
+                        {
+                            pixels[pixelIdx++] = new Color32(b2, b1, b0, b3);
+                            pixels[pixelIdx++] = new Color32(b6, b5, b4, b7);
+                        }
+                    }
+
+                    break;
+                }
+                case 1:
+                {
+                    isMask = true;
+                    backgroundColor = new Color32(br.ReadByte(), br.ReadByte(), br.ReadByte(), 255);
+                    br.ReadByte();
+                    foregroundColor = new Color32(br.ReadByte(), br.ReadByte(), br.ReadByte(), 255);
+                    br.ReadByte();
+
+                    var padding = (32 - cursor.width % 32) % 32;
+                    var values = br.ReadBytes((int)imageSizeInBytes);
+
+                    int pixelIdx = 0;
+
+                    for (int j = 0; j < imageSizeInBytes * 8; ++j)
+                    {
+                        int x = j % (cursor.width + padding);
+
+                        var idx = j / 8;
+                        var bit = 7 - j % 8;
+                        var val = (values[idx] >> bit) & 1;
+
+                        if (x < cursor.width)
+                        {
+                            pixels[pixelIdx++] = new Color32(255, 255, 255, val == 1 ? (byte)255 : (byte)0);
+                        }
+                    }
+
+                    break;
+                }
+                default: throw new System.NotImplementedException($"Bit per pixel {bitPetPixel} not implemented!");
+            }
+
+            return isMask;
         }
     }
 }
