@@ -31,11 +31,11 @@ namespace Riten.Native.Cursors.Editor.Importers
     [ScriptedImporter(1, "cur")]
     public class CurImporter : ScriptedImporter
     {
-        [SerializeField] private int offset;
-
+        [SerializeField] bool _invertXHotspot;
+        
         public override void OnImportAsset(AssetImportContext ctx)
         {
-            var cursors = LoadCursorFromFile(ctx.assetPath);
+            var cursors = LoadCursorFromFile(ctx.assetPath, _invertXHotspot);
             
             VirtualCursor firstCursor = null;
             
@@ -53,24 +53,28 @@ namespace Riten.Native.Cursors.Editor.Importers
                 ctx.AddObjectToAsset($"cursor_{idx}_texture", cursors[i].texture, cursor.texture);
                 ctx.AddObjectToAsset($"cursor_{idx}", cursor, cursor.texture);
 
+                var newCur = Instantiate(cursor);
+                newCur.name = $"cursor_{idx}_cursor";
+                ctx.AddObjectToAsset($"cursor_{idx}_cursor", newCur, cursor.texture);
+
                 firstCursor ??= cursor;
             }
             
             ctx.SetMainObject(firstCursor);
         }
 
-        static List<CURSOR_RESULT> LoadCursorFromFile(string file)
+        static List<CURSOR_RESULT> LoadCursorFromFile(string file, bool invertXHotspot = false)
         {
             if (!File.Exists(file))
                 return null;
             
             using var br = new BinaryReader(File.OpenRead(file));
             
-            LoadCursorFromBinary(br, out var res);
+            LoadCursorFromBinary(br, out var res, invertXHotspot);
             return res;
         }
 
-        public static bool LoadCursorFromBinary(BinaryReader br, out List<CURSOR_RESULT> result)
+        public static bool LoadCursorFromBinary(BinaryReader br, out List<CURSOR_RESULT> result, bool invertXHotspot = false)
         {
             result = new List<CURSOR_RESULT>();
             
@@ -88,7 +92,7 @@ namespace Riten.Native.Cursors.Editor.Importers
 
             for (int i = 0; i < count; ++i)
             {
-                cursors.Add(new CURSOR
+                var c = new CURSOR
                 {
                     width = br.ReadByte(),
                     height = br.ReadByte(),
@@ -98,7 +102,12 @@ namespace Riten.Native.Cursors.Editor.Importers
                     yhotspot = br.ReadUInt16(),
                     sizeInBytes = br.ReadUInt32(),
                     fileOffset = br.ReadUInt32()
-                });
+                };
+                
+                if (invertXHotspot)
+                    c.xhotspot = (ushort)(c.width - c.xhotspot);
+                
+                cursors.Add(c); 
             }
 
             for (int i = 0; i < cursors.Count; ++i)
@@ -107,35 +116,45 @@ namespace Riten.Native.Cursors.Editor.Importers
                 
                 br.BaseStream.Seek(begin + cursors[i].fileOffset, SeekOrigin.Begin);
 
-                if (cursor is { width: 0, height: 0 })
+                var sizeOfStruct = br.ReadUInt32();
+                var skipRest = sizeOfStruct != 40;
+
+                if (skipRest)
+                    br.BaseStream.Seek(-4, SeekOrigin.Current);
+                
+                if (skipRest || cursor is { width: 0, height: 0 })
                 {
                     var rawData = br.ReadBytes((int)cursor.sizeInBytes);
                     var rawTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false) {
                         alphaIsTransparency = true
                     };
                     
-                    rawTexture.LoadRawTextureData(rawData);
+                    rawTexture.LoadImage(rawData);
                     rawTexture.Apply();
                     
-                    results.Add(new CURSOR_RESULT
+                    var finalTexture = new Texture2D(rawTexture.width, rawTexture.height, TextureFormat.RGBA32, false) {
+                        alphaIsTransparency = true
+                    };
+                    
+                    finalTexture.SetPixels32(rawTexture.GetPixels32());
+
+                    var c = new CURSOR_RESULT
                     {
-                        texture = rawTexture,
+                        texture = finalTexture,
                         isMask = false,
                         backgroundColor = default,
                         foregroundColor = default,
                         hotspot = new Vector2(
-                            cursor.xhotspot / (float)cursor.width, 
-                            cursor.yhotspot / (float)cursor.height
+                            cursor.xhotspot / (float)finalTexture.width,
+                            cursor.yhotspot / (float)finalTexture.height
                         )
-                    });
+                    };
                     
+                    results.Add(c);
+                    br.BaseStream.Seek(begin + cursors[i].fileOffset + cursor.sizeInBytes, SeekOrigin.Begin);
                     continue;
                 }
-
-                var sizeOfStruct = br.ReadUInt32();
                 
-                if (sizeOfStruct != 40) Debug.LogError($"BitmapInfoHeader size expected to be 40, was {sizeOfStruct}!");
-
                 var cursorWidth = br.ReadUInt32();
                 var cursorHeight = br.ReadUInt32();
                 

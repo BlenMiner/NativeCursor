@@ -128,7 +128,7 @@ namespace Riten.Native.Cursors.Editor.Importers
                 return false;
             }
 
-            br.ReadInt32();
+            var riffSize = br.ReadInt32();
             var riffType = br.ReadInt32();
 
             if (riffType != 0x4E4F4341)
@@ -194,23 +194,8 @@ namespace Riten.Native.Cursors.Editor.Importers
                 });
             }
             
-            var bytesLeft = br.BaseStream.Length - br.BaseStream.Position;
-
-            if (bytesLeft == 0)
-            {
-                result = cursor;
-                return true;
-            }
-            
-            var seqIdentifier = br.ReadInt32();
-            
-            if (seqIdentifier != 0x20716573)
-            {
-                Debug.LogError("Invalid seq identifier");
-                return false;
-            }
-            
-            throw new System.NotImplementedException();
+            result = cursor;
+            return true;
         }
 
         private static bool ReadIcon(BinaryReader br, out List<CURSOR_RESULT> result)
@@ -218,10 +203,11 @@ namespace Riten.Native.Cursors.Editor.Importers
             result = null;
             
             var iconIdentifier = br.ReadInt32();
-            
+
             if (iconIdentifier != 0x6E6F6369)
             {
                 br.BaseStream.Seek(-4, SeekOrigin.Current);
+                Debug.LogError($"Invalid icon identifier, {br.BaseStream.Position}");
                 return false;
             }
             
@@ -232,6 +218,9 @@ namespace Riten.Native.Cursors.Editor.Importers
                 Debug.LogError("Failed to load cursor from binary");
                 return false;
             }
+            
+            while (br.PeekChar() == 0)
+                br.ReadByte();
             
             return true;
         }

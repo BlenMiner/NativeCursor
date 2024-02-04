@@ -99,10 +99,7 @@ namespace Riten.Native.Cursors.Virtual
                 DoMaskedPostProcess();*/
         }
         
-        Texture2D _maskTexture;
-        Texture2D _screenTexture;
-
-        private void CaptureScreen()
+        /*private void CaptureScreen()
         {
             _screenTexture ??= new Texture2D(_maskTexture.width, _maskTexture.height, TextureFormat.RGBA32, false);
             
@@ -117,14 +114,7 @@ namespace Riten.Native.Cursors.Virtual
             _screenTexture.Apply();
         }
 
-        private void OnGUI()
-        {
-            GUILayout.Label($"FPS: {1f / Time.deltaTime}");
-            GUILayout.Label(_maskTexture);
-            GUILayout.Label(_screenTexture);
-        }
-
-        /*private void DoMaskedPostProcess()
+        private void DoMaskedPostProcess()
         {
             var texture = _activeCursor.texture;
             var pixels = texture.GetPixels32();
