@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d8a9378ecbeaa44dab124afcc318cbe, type: 3}
   m_Name: MacOS
   m_EditorClassIdentifier: 
-  default: {fileID: 11400000, guid: b1560b0c742f6db49a9ef8ec032c5a2e, type: 2}
-  pointer: {fileID: 11400000, guid: 850e03b61cb5168489827c213e1d39ad, type: 2}
-  ibeam: {fileID: 11400000, guid: e14175054e8f8d2429a29a072ac49ec4, type: 2}
-  wait: {fileID: 3135074058791314512, guid: 79276cb779d03aa4ca2111fd4b6248e8, type: 3}
-  cross: {fileID: 11400000, guid: aa8384ad19880964b8a77f52c223bc8f, type: 2}
+  default: {fileID: 5441368309641950716, guid: fbda37612c541cd4badaf93e31ab59f4, type: 3}
+  pointer: {fileID: 5441368309641950716, guid: c0048323b9019cb4b86fa7216cad1655, type: 3}
+  ibeam: {fileID: 5441368309641950716, guid: 092bc64f08ffa424ab50b398e5413d1f, type: 3}
+  wait: {fileID: 3135074058791314512, guid: a1bc7bb0554777447b4e80577762d2dc, type: 3}
+  cross: {fileID: 5441368309641950716, guid: 3125cd1f2ac668243b08dce9f7058fb5, type: 3}
   grab: {fileID: 11400000, guid: c5c7e1f3056eb9b4887cc45f2c04f39f, type: 2}
   grabbing: {fileID: 11400000, guid: 060dfceb7edbd984a843eb8bc6257064, type: 2}
-  denied: {fileID: 11400000, guid: 9ec99ecdefbc59d468dacedbaee10678, type: 2}
+  denied: {fileID: 5441368309641950716, guid: b0483e730dc8b2c45b634e2bd0e9db5f, type: 3}
   move: {fileID: 11400000, guid: 530ee19068abf484ca3b2ca92c65e034, type: 2}
-  resizeHorizontal: {fileID: 11400000, guid: 652182bb871c2e94a907640092b254c0, type: 2}
-  resizeVertical: {fileID: 11400000, guid: d3b34267ca694374ab395977d8facae6, type: 2}
-  resizeDiagonal1: {fileID: 11400000, guid: 8454e4459b4159f49b28e05e8c157ab7, type: 2}
-  resizeDiagonal2: {fileID: 11400000, guid: 79d0f52f7abc82b41a18961546e90024, type: 2}
+  resizeHorizontal: {fileID: 5441368309641950716, guid: f6028ed3f6833ab409b903c5f9955eba, type: 3}
+  resizeVertical: {fileID: 5441368309641950716, guid: 1747ad8faafc9b24eaf0232bbfbfd897, type: 3}
+  resizeDiagonal1: {fileID: 5441368309641950716, guid: 1e7562b1c1f070e4c9c91001236d1b0b, type: 3}
+  resizeDiagonal2: {fileID: 5441368309641950716, guid: caddb145ed8f25441be909ffacb15f93, type: 3}
