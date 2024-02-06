@@ -996,7 +996,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d143376dff86784c833dfcffeeb51b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _cursorPack: {fileID: 11400000, guid: ab14c6fc3b999b84eb14a6a0465a153f, type: 2}
+  _cursorPack: {fileID: 11400000, guid: f079fd2de14e67a4a95ef5828dae90ba, type: 2}
   _camera: {fileID: 963194227}
 --- !u!4 &962982066
 Transform:

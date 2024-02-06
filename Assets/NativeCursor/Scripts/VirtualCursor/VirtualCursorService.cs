@@ -9,6 +9,7 @@ namespace Riten.Native.Cursors.Virtual
         private VirtualCursorBase _activeCursor;
         private Camera _camera;
 
+        private int _lastFrame;
         private int _frame;
         private float _fps;
 
@@ -53,8 +54,7 @@ namespace Riten.Native.Cursors.Virtual
                 return false;
             
             _frame = 0;
-            _timer = 0;
-            _fps = _activeCursor.framesPerSecond == 0 ? 0 : 1f / _activeCursor.framesPerSecond;
+            _fps = Mathf.Abs(_activeCursor.framesPerSecond == 0 ? 0 : 1f / _activeCursor.framesPerSecond);
 
             DoCursorUpdate();
             return true;
@@ -62,30 +62,21 @@ namespace Riten.Native.Cursors.Virtual
 
         public void ResetCursor()
         {
-            _activeCursor = _cursorPack.GetCursor(NTCursors.Arrow);
-            _frame = 0;
-            _timer = 0;
-            _fps = !_activeCursor || _activeCursor.framesPerSecond == 0 ? 1f / _activeCursor.framesPerSecond : 0;
-            DoCursorUpdate();
+            SetCursor(NTCursors.Arrow);
         }
-
-        private float _timer;
 
         void Update()
         {
             if (!_activeCursor || !_activeCursor.isAnimated || _activeCursor.frames.Length == 0) 
                 return;
-        
-            if (_timer < _fps)
-            {
-                _timer += Time.deltaTime;
-                return;
-            }
-        
-            _frame = (_frame + 1) % _activeCursor.frames.Length;
-            _timer = 0;
+            
+            _frame = Mathf.RoundToInt(_fps == 0f ? 0 : Time.time / _fps) % _activeCursor.frames.Length;
 
-            DoCursorUpdate();
+            if (_lastFrame != _frame)
+            {
+                _lastFrame = _frame;
+                DoCursorUpdate();
+            }
         }
 
         private void DoCursorUpdate()
@@ -137,6 +128,12 @@ namespace Riten.Native.Cursors.Virtual
             
             if (region.y + region.height > Screen.height)
                 region.y = Screen.height - region.height;
+            
+            if (region.x < 0)
+                region.x = 0;
+            
+            if (region.y < 0)
+                region.y = 0;
             
             _screenTexture.ReadPixels(region, 0, 0, false);
             _screenTexture.Apply();
