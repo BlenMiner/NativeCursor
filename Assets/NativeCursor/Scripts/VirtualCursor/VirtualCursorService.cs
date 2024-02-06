@@ -7,12 +7,41 @@ namespace Riten.Native.Cursors.Virtual
         private CursorPack _cursorPack;
         
         private VirtualCursorBase _activeCursor;
+        private Camera _camera;
 
         private int _frame;
         private float _fps;
 
-        public void UpdatePack(CursorPack pack)
+        private void Awake()
         {
+            _camera = Camera.main;
+        }
+
+        private void OnEnable()
+        {
+            Camera.onPostRender += OnPostRenderCb;
+        }
+        
+        private void OnDisable()
+        {
+            Camera.onPostRender -= OnPostRenderCb;
+        }
+
+        private void OnPostRenderCb(Camera cmr)
+        {
+            if (!Application.isPlaying) return;
+            
+            if (cmr != _camera) return;
+
+            if (_activeCursor.isMask)
+            {
+                DoMaskedPostProcess();
+            }
+        }
+
+        public void UpdatePack(CursorPack pack, Camera cmr)
+        {
+            if (cmr) _camera = cmr;
             _cursorPack = pack;
         }
         
@@ -41,16 +70,9 @@ namespace Riten.Native.Cursors.Virtual
         }
 
         private float _timer;
-        private readonly WaitForEndOfFrame frameEnd = new ();
 
         void Update()
         {
-            /*if (_activeCursor && _activeCursor.isMask)
-            {
-                DoMaskedPostProcess();
-                continue;
-            }*/
-
             if (!_activeCursor || !_activeCursor.isAnimated || _activeCursor.frames.Length == 0) 
                 return;
         
@@ -63,10 +85,10 @@ namespace Riten.Native.Cursors.Virtual
             _frame = (_frame + 1) % _activeCursor.frames.Length;
             _timer = 0;
 
-            DoCursorUpdate(true);
+            DoCursorUpdate();
         }
 
-        private void DoCursorUpdate(bool pp = false)
+        private void DoCursorUpdate()
         {
             if (!_activeCursor) return;
 
@@ -94,12 +116,12 @@ namespace Riten.Native.Cursors.Virtual
                     CursorMode.Auto
                 );
             }
-            
-            /*if (pp && _activeCursor.isMask)
-                DoMaskedPostProcess();*/
         }
-        
-        /*private void CaptureScreen()
+
+        private Texture2D _screenTexture;
+        private Texture2D _maskTexture;
+
+        private void CaptureScreen()
         {
             _screenTexture ??= new Texture2D(_maskTexture.width, _maskTexture.height, TextureFormat.RGBA32, false);
             
@@ -108,7 +130,13 @@ namespace Riten.Native.Cursors.Virtual
 
             var pos = Input.mousePosition;
             var hot = _activeCursor.hotspot * new Vector2(_maskTexture.width, _maskTexture.height);
-            var region = new Rect(pos.x - hot.x, pos.y - hot.y, _screenTexture.width, _screenTexture.height);
+            var region = new Rect(pos.x - hot.x, Screen.height - pos.y - hot.y, _screenTexture.width, _screenTexture.height);
+            
+            if (region.x + region.width > Screen.width)
+                region.x = Screen.width - region.width;
+            
+            if (region.y + region.height > Screen.height)
+                region.y = Screen.height - region.height;
             
             _screenTexture.ReadPixels(region, 0, 0, false);
             _screenTexture.Apply();
@@ -161,6 +189,11 @@ namespace Riten.Native.Cursors.Virtual
                 ),
                 CursorMode.ForceSoftware
             );
-        }*/
+        }
+
+        public void SetCamera(Camera cmr)
+        {
+            _camera = cmr;
+        }
     }
 }

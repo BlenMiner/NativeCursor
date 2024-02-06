@@ -40,8 +40,7 @@ namespace Riten.Native.Cursors
         /// <summary>
         /// This method uses a virtual cursor pack to set the cursor.
         /// </summary>
-        /// <param name="cursorPack"></param>
-        public static void SetCursorPack(CursorPack cursorPack)
+        public static void SetCursorPack(CursorPack cursorPack, Camera cmr)
         {
             if (cursorPack == null)
             {
@@ -61,14 +60,20 @@ namespace Riten.Native.Cursors
                 _vcs = go.AddComponent<VirtualCursorService>();
             }
             
-            _vcs.UpdatePack(cursorPack);
+            _vcs.UpdatePack(cursorPack, cmr);
             
             SetService(_vcs);
+        }
+        
+        public static void SetCursorPackCamera(Camera cmr)
+        {
+            if (_vcs)
+                _vcs.SetCamera(cmr);
         }
 
         public static void ClearCursorPack()
         {
-            SetCursorPack(null);
+            SetCursorPack(null, null);
             Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
         }
         

@@ -32,7 +32,7 @@ namespace Riten.Native.Cursors.Editor
             {
                 var macos = Resources.Load<CursorPack>("CursorPacks/MacOS");
 
-                NativeCursor.SetCursorPack(macos);
+                NativeCursor.SetCursorPack(macos, Camera.main);
             }
         }
 
