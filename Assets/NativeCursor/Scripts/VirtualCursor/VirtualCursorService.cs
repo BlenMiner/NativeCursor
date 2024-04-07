@@ -146,15 +146,11 @@ namespace Riten.Native.Cursors.Virtual
 
             if (!_maskTexture)
             {
-                _maskTexture = new Texture2D(texture.width, texture.height, TextureFormat.RGBA32, false)
-                {
-                    alphaIsTransparency = true
-                };
+                _maskTexture = new Texture2D(texture.width, texture.height, TextureFormat.RGBA32, false);
             }
             else if (_maskTexture.width != texture.width || _maskTexture.height != texture.height)
             {
                 _maskTexture.Reinitialize(texture.width, texture.height, TextureFormat.RGBA32, false);
-                _maskTexture.alphaIsTransparency = true;
             }
             
             CaptureScreen();
