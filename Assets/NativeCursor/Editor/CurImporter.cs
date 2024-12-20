@@ -203,6 +203,39 @@ namespace Riten.Native.Cursors.Editor.Importers
             result = results;
             return true;
         }
+        
+        static Color32 Overlay(Color32 foreground, Color32 background)
+        {
+            // Normalize color and alpha values to [0, 1]
+            float fgR = foreground.r / 255f;
+            float fgG = foreground.g / 255f;
+            float fgB = foreground.b / 255f;
+            float fgA = foreground.a / 255f;
+
+            float bgR = background.r / 255f;
+            float bgG = background.g / 255f;
+            float bgB = background.b / 255f;
+            float bgA = background.a / 255f;
+
+            // Calculate resulting alpha
+            float outA = fgA + bgA * (1 - fgA);
+
+            // Prevent division by zero if alpha is zero
+            if (outA == 0) return new Color32(0, 0, 0, 0);
+
+            // Calculate resulting color channels
+            float outR = (fgR * fgA + bgR * bgA * (1 - fgA)) / outA;
+            float outG = (fgG * fgA + bgG * bgA * (1 - fgA)) / outA;
+            float outB = (fgB * fgA + bgB * bgA * (1 - fgA)) / outA;
+
+            // Convert back to Color32 (0-255)
+            return new Color32(
+                (byte)(outR * 255),
+                (byte)(outG * 255),
+                (byte)(outB * 255),
+                (byte)(outA * 255)
+            );
+        }
 
         private static bool LoadPixelsData(BinaryReader br, ushort bitPetPixel, IList<Color32> pixels,
             CURSOR cursor, uint imageSizeInBytes, ref Color32 backgroundColor, ref Color32 foregroundColor)
@@ -272,6 +305,7 @@ namespace Riten.Native.Cursors.Editor.Importers
                     var values = br.ReadBytes((int)imageSizeInBytes);
 
                     int pixelIdx = 0;
+                    bool isSecondPass = false;
 
                     for (int j = 0; j < imageSizeInBytes * 8; ++j)
                     {
@@ -283,7 +317,27 @@ namespace Riten.Native.Cursors.Editor.Importers
 
                         if (x < cursor.width)
                         {
-                            pixels[pixelIdx++] = new Color32(255, 255, 255, val == 1 ? (byte)255 : (byte)0);
+                            if (pixelIdx >= pixelCount)
+                            {
+                                pixelIdx = 0;
+                                isSecondPass = true;
+                            }
+
+                            if (isSecondPass)
+                            {
+                                var existing = pixels[pixelIdx];
+                                
+                                var color = backgroundColor;
+                                color.a = val == 1 ? (byte)0 : (byte)255;
+                                
+                                pixels[pixelIdx++] = Overlay(existing, color);
+                            }
+                            else
+                            {
+                                var color = foregroundColor;
+                                color.a = val == 1 ? (byte)255 : (byte)0;
+                                pixels[pixelIdx++] = color;
+                            }
                         }
                     }
 
