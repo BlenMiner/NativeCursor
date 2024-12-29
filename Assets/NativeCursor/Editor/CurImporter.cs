@@ -184,6 +184,7 @@ namespace Riten.Native.Cursors.Editor.Importers
                 };
                 
                 texture.SetPixels32(pixels);
+                texture.wrapMode = TextureWrapMode.Clamp;
                 texture.filterMode = FilterMode.Bilinear;
                 texture.Apply();
                 
@@ -325,6 +326,7 @@ namespace Riten.Native.Cursors.Editor.Importers
 
                             if (isSecondPass)
                             {
+                                isMask = false;
                                 var existing = pixels[pixelIdx];
                                 
                                 var color = backgroundColor;
