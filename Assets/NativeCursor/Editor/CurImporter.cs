@@ -31,13 +31,14 @@ namespace Riten.Native.Cursors.Editor.Importers
         public int Height => height == 0 ? 256 : height;
     }
 
-    [ScriptedImporter(2, "cur")]
+    [ScriptedImporter(3, "cur")]
     public class CurImporter : ScriptedImporter
     {
         private const ushort CursorResourceType = 2;
         private const uint PngSignatureFirstBytes = 0x474E5089;
         private const uint BiRgb = 0;
         private const uint BiBitFields = 3;
+        private const byte InvertedMaskAlpha = 1;
         private const int MaxCursorDimension = 4096;
 
         [SerializeField] bool _invertXHotspot;
@@ -317,15 +318,19 @@ namespace Riten.Native.Cursors.Editor.Importers
                 }
             }
 
+            var hasInvertedMaskPixels = false;
+            var preserveInvertedMaskPixels = bitPerPixel < 32 || !hasNonZeroAlpha;
+
             if (br.BaseStream.Position + maskBytes <= imageEnd)
-                ApplyAndMask(br, pixels, width, height, maskStride, topDown);
+                hasInvertedMaskPixels = ApplyAndMask(br, pixels, width, height, maskStride, topDown,
+                    preserveInvertedMaskPixels);
 
             var texture = CreateTexture(width, height, pixels);
 
             result = new CURSOR_RESULT
             {
                 texture = texture,
-                isMask = false,
+                isMask = hasInvertedMaskPixels,
                 backgroundColor = palette is { Length: > 0 } ? palette[0] : default,
                 foregroundColor = palette is { Length: > 1 } ? palette[1] : default,
                 hotspot = NormalizeHotspot(cursor.xhotspot, cursor.yhotspot, width, height, invertXHotspot)
@@ -437,9 +442,11 @@ namespace Riten.Native.Cursors.Editor.Importers
             return palette[index];
         }
 
-        private static void ApplyAndMask(BinaryReader br, IList<Color32> pixels, int width, int height, int maskStride,
-            bool topDown)
+        private static bool ApplyAndMask(BinaryReader br, IList<Color32> pixels, int width, int height, int maskStride,
+            bool topDown, bool preserveInvertedPixels)
         {
+            var hasInvertedPixels = false;
+
             for (int rowIndex = 0; rowIndex < height; ++rowIndex)
             {
                 var row = br.ReadBytes(maskStride);
@@ -455,10 +462,27 @@ namespace Riten.Native.Cursors.Editor.Importers
 
                     var pixelIndex = targetY * width + x;
                     var pixel = pixels[pixelIndex];
-                    pixel.a = 0;
+
+                    if (preserveInvertedPixels && HasXorColor(pixel))
+                    {
+                        pixel.a = InvertedMaskAlpha;
+                        hasInvertedPixels = true;
+                    }
+                    else
+                    {
+                        pixel.a = 0;
+                    }
+
                     pixels[pixelIndex] = pixel;
                 }
             }
+
+            return hasInvertedPixels;
+        }
+
+        private static bool HasXorColor(Color32 pixel)
+        {
+            return pixel.r != 0 || pixel.g != 0 || pixel.b != 0;
         }
 
         private static Texture2D CreateTexture(int width, int height, Color32[] pixels)

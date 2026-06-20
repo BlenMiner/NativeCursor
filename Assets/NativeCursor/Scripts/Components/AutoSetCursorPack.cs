@@ -6,7 +6,7 @@ namespace Riten.Native.Cursors.Virtual
     {
         [SerializeField] CursorPack _cursorPack;
         [SerializeField] Camera _camera;
-        [SerializeField] MaskCursorMode _maskCursorMode = MaskCursorMode.Stable;
+        [SerializeField] MaskCursorMode _maskCursorMode = MaskCursorMode.LiveInverted;
         [SerializeField, Min(1)] int _liveMaskInversionUpdatesPerSecond = 30;
 
         private CursorPack _lastActivated;

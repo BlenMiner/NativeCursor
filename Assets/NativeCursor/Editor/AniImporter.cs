@@ -100,6 +100,8 @@ namespace Riten.Native.Cursors.Editor.Importers
                 cursor.texture.name = $"cursor_{i}_texture";
                 cursor.isMask = frame.cursors[smallestWidth].isMask;
                 cursor.hotspot = frame.cursors[smallestWidth].hotspot;
+                cursor.backgroundColor = frame.cursors[smallestWidth].backgroundColor;
+                cursor.foregroundColor = frame.cursors[smallestWidth].foregroundColor;
                 
                 ctx.AddObjectToAsset($"cursor_{i}_texture", cursor.texture, cursor.texture);
                 ctx.AddObjectToAsset($"cursor_{i}", cursor, cursor.texture);

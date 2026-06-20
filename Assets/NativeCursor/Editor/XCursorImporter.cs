@@ -8,23 +8,18 @@ namespace Riten.Native.Cursors.Editor.Importers
 {
     internal abstract class XCursorImporterBase : ScriptedImporter
     {
-        private const uint XCursorMagic = 0x72756358;
-        private const uint XCursorImageType = 0xfffd0002;
-        private const int MinImageHeaderSize = 36;
-        private const int MaxCursorDimension = 4096;
-
         [SerializeField] bool _useTargetSize;
         [SerializeField] Vector2Int _targetSize = new(32, 32);
 
         public override void OnImportAsset(AssetImportContext ctx)
         {
-            if (!LoadXCursorFile(ctx.assetPath, out var images) || images.Count == 0)
+            if (!XCursorParser.TryLoadFile(ctx.assetPath, out var images) || images.Count == 0)
             {
                 Debug.LogError($"Failed to load Xcursor file: {ctx.assetPath}");
                 return;
             }
 
-            var selectedImages = SelectImages(images, _useTargetSize, _targetSize);
+            var selectedImages = XCursorParser.SelectImages(images, _useTargetSize, _targetSize);
 
             if (selectedImages.Count == 0)
             {
@@ -32,30 +27,166 @@ namespace Riten.Native.Cursors.Editor.Importers
                 return;
             }
 
-            if (IsAnimatedGroup(selectedImages))
+            if (XCursorParser.IsAnimatedGroup(selectedImages))
             {
                 CursorImportAssets.AddAnimatedCursor(
                     ctx,
                     Path.GetFileNameWithoutExtension(ctx.assetPath),
-                    ToCursorResults(selectedImages),
-                    CalculateFramesPerSecond(selectedImages)
+                    XCursorParser.ToCursorResults(selectedImages),
+                    XCursorParser.CalculateFramesPerSecond(selectedImages)
                 );
                 return;
             }
 
-            CursorImportAssets.AddStaticCursors(ctx, ToCursorResults(_useTargetSize ? selectedImages : images));
+            CursorImportAssets.AddStaticCursors(
+                ctx,
+                XCursorParser.ToCursorResults(_useTargetSize ? selectedImages : images)
+            );
         }
+    }
 
-        private static bool LoadXCursorFile(string path, out List<XCursorImage> images)
+    internal static class XCursorParser
+    {
+        private const uint XCursorMagic = 0x72756358;
+        private const uint XCursorImageType = 0xfffd0002;
+        private const int MinImageHeaderSize = 36;
+        private const int MaxCursorDimension = 4096;
+
+        public static bool TryLoadFile(string path, out List<XCursorImage> images)
         {
             images = new List<XCursorImage>();
 
             if (!File.Exists(path))
                 return false;
 
+            using var stream = File.OpenRead(path);
+            return TryLoadStream(stream, out images);
+        }
+
+        public static bool TryLoadStream(Stream stream, out List<XCursorImage> images)
+        {
+            images = new List<XCursorImage>();
+
+            if (!stream.CanSeek)
+            {
+                using var copy = new MemoryStream();
+                stream.CopyTo(copy);
+                copy.Position = 0;
+                return TryLoadSeekableStream(copy, out images);
+            }
+
+            return TryLoadSeekableStream(stream, out images);
+        }
+
+        public static List<XCursorImage> SelectImages(IReadOnlyList<XCursorImage> images, bool useTargetSize,
+            Vector2Int targetSize)
+        {
+            if (!useTargetSize)
+            {
+                var animatedGroup = FindFirstAnimatedGroup(images);
+
+                if (animatedGroup.Count > 0)
+                    return animatedGroup;
+
+                return new List<XCursorImage>(images);
+            }
+
+            var target = Mathf.Max(targetSize.x, targetSize.y);
+            var bestDistance = int.MaxValue;
+            var bestNominalSize = 0u;
+
+            foreach (var image in images)
+            {
+                var distance = Mathf.Abs((int)image.nominalSize - target);
+
+                if (distance >= bestDistance)
+                    continue;
+
+                bestDistance = distance;
+                bestNominalSize = image.nominalSize;
+            }
+
+            var selected = new List<XCursorImage>();
+
+            foreach (var image in images)
+            {
+                if (image.nominalSize == bestNominalSize)
+                    selected.Add(image);
+            }
+
+            return selected;
+        }
+
+        public static List<CURSOR_RESULT> ToCursorResults(IReadOnlyList<XCursorImage> images)
+        {
+            var results = new List<CURSOR_RESULT>(images.Count);
+
+            foreach (var image in images)
+            {
+                var texture = new Texture2D(image.width, image.height, TextureFormat.RGBA32, false)
+                {
+                    alphaIsTransparency = true,
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear
+                };
+
+                texture.SetPixels32(image.pixels);
+                texture.Apply();
+
+                results.Add(new CURSOR_RESULT
+                {
+                    texture = texture,
+                    hotspot = new Vector2(
+                        Mathf.Clamp(image.xhot / (float)image.width, 0f, 1f),
+                        Mathf.Clamp(image.yhot / (float)image.height, 0f, 1f)
+                    ),
+                    isMask = false,
+                    backgroundColor = default,
+                    foregroundColor = default
+                });
+            }
+
+            return results;
+        }
+
+        public static bool IsAnimatedGroup(IReadOnlyList<XCursorImage> images)
+        {
+            if (images.Count == 0)
+                return false;
+
+            var nominalSize = images[0].nominalSize;
+
+            for (var i = 1; i < images.Count; ++i)
+            {
+                if (images[i].nominalSize != nominalSize)
+                    return false;
+            }
+
+            if (images.Count > 1)
+                return true;
+
+            return images[0].delayMilliseconds > 0;
+        }
+
+        public static int CalculateFramesPerSecond(IReadOnlyList<XCursorImage> images)
+        {
+            var totalDelay = 0f;
+
+            foreach (var image in images)
+                totalDelay += image.delayMilliseconds == 0 ? 100f : image.delayMilliseconds;
+
+            var averageDelay = totalDelay / images.Count;
+            return Mathf.Max(1, Mathf.RoundToInt(1000f / averageDelay));
+        }
+
+        private static bool TryLoadSeekableStream(Stream stream, out List<XCursorImage> images)
+        {
+            images = new List<XCursorImage>();
+
             try
             {
-                using var br = new BinaryReader(File.OpenRead(path));
+                stream.Position = 0;
+                using var br = new BinaryReader(stream);
 
                 if (!CanRead(br, 16) || br.ReadUInt32() != XCursorMagic)
                     return false;
@@ -178,45 +309,6 @@ namespace Riten.Native.Cursors.Editor.Importers
             return true;
         }
 
-        private static List<XCursorImage> SelectImages(IReadOnlyList<XCursorImage> images, bool useTargetSize,
-            Vector2Int targetSize)
-        {
-            if (!useTargetSize)
-            {
-                var animatedGroup = FindFirstAnimatedGroup(images);
-
-                if (animatedGroup.Count > 0)
-                    return animatedGroup;
-
-                return new List<XCursorImage>(images);
-            }
-
-            var target = Mathf.Max(targetSize.x, targetSize.y);
-            var bestDistance = int.MaxValue;
-            var bestNominalSize = 0u;
-
-            foreach (var image in images)
-            {
-                var distance = Mathf.Abs((int)image.nominalSize - target);
-
-                if (distance >= bestDistance)
-                    continue;
-
-                bestDistance = distance;
-                bestNominalSize = image.nominalSize;
-            }
-
-            var selected = new List<XCursorImage>();
-
-            foreach (var image in images)
-            {
-                if (image.nominalSize == bestNominalSize)
-                    selected.Add(image);
-            }
-
-            return selected;
-        }
-
         private static List<XCursorImage> FindFirstAnimatedGroup(IReadOnlyList<XCursorImage> images)
         {
             var groups = new Dictionary<uint, List<XCursorImage>>();
@@ -244,68 +336,6 @@ namespace Riten.Native.Cursors.Editor.Importers
             }
 
             return bestGroup ?? new List<XCursorImage>();
-        }
-
-        private static List<CURSOR_RESULT> ToCursorResults(IReadOnlyList<XCursorImage> images)
-        {
-            var results = new List<CURSOR_RESULT>(images.Count);
-
-            foreach (var image in images)
-            {
-                var texture = new Texture2D(image.width, image.height, TextureFormat.RGBA32, false)
-                {
-                    alphaIsTransparency = true,
-                    wrapMode = TextureWrapMode.Clamp,
-                    filterMode = FilterMode.Bilinear
-                };
-
-                texture.SetPixels32(image.pixels);
-                texture.Apply();
-
-                results.Add(new CURSOR_RESULT
-                {
-                    texture = texture,
-                    hotspot = new Vector2(
-                        Mathf.Clamp(image.xhot / (float)image.width, 0f, 1f),
-                        Mathf.Clamp(image.yhot / (float)image.height, 0f, 1f)
-                    ),
-                    isMask = false,
-                    backgroundColor = default,
-                    foregroundColor = default
-                });
-            }
-
-            return results;
-        }
-
-        private static bool IsAnimatedGroup(IReadOnlyList<XCursorImage> images)
-        {
-            if (images.Count == 0)
-                return false;
-
-            var nominalSize = images[0].nominalSize;
-
-            for (var i = 1; i < images.Count; ++i)
-            {
-                if (images[i].nominalSize != nominalSize)
-                    return false;
-            }
-
-            if (images.Count > 1)
-                return true;
-
-            return images[0].delayMilliseconds > 0;
-        }
-
-        private static int CalculateFramesPerSecond(IReadOnlyList<XCursorImage> images)
-        {
-            var totalDelay = 0f;
-
-            foreach (var image in images)
-                totalDelay += image.delayMilliseconds == 0 ? 100f : image.delayMilliseconds;
-
-            var averageDelay = totalDelay / images.Count;
-            return Mathf.Max(1, Mathf.RoundToInt(1000f / averageDelay));
         }
 
         private static Color32 DecodePremultipliedArgb(uint argb)
@@ -346,17 +376,17 @@ namespace Riten.Native.Cursors.Editor.Importers
             public uint subtype;
             public uint position;
         }
+    }
 
-        private struct XCursorImage
-        {
-            public uint nominalSize;
-            public int width;
-            public int height;
-            public uint xhot;
-            public uint yhot;
-            public uint delayMilliseconds;
-            public Color32[] pixels;
-        }
+    internal struct XCursorImage
+    {
+        public uint nominalSize;
+        public int width;
+        public int height;
+        public uint xhot;
+        public uint yhot;
+        public uint delayMilliseconds;
+        public Color32[] pixels;
     }
 
     [ScriptedImporter(1, "xcursor")]

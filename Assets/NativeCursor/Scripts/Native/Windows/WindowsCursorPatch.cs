@@ -110,6 +110,11 @@ namespace Riten.Native.Cursors
 
         void OnDestroy()
         {
+            RestoreHook();
+        }
+
+        private static void RestoreHook()
+        {
             if (hMainWindow.Handle != IntPtr.Zero && unityWndProcHandler != IntPtr.Zero)
                 SetWindowLongPtr(hMainWindow, GWLP_WNDPROC, unityWndProcHandler);
 

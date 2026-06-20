@@ -1,4 +1,7 @@
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace Riten.Native.Cursors.Virtual
 {
@@ -10,8 +13,9 @@ namespace Riten.Native.Cursors.Virtual
 
     public class VirtualCursorService : MonoBehaviour, ICursorService
     {
-        public static MaskCursorMode maskCursorMode = MaskCursorMode.Stable;
+        public static MaskCursorMode maskCursorMode = MaskCursorMode.LiveInverted;
         public static int liveMaskInversionUpdatesPerSecond = 30;
+        private const byte InvertedMaskAlpha = 1;
 
         private CursorPack _cursorPack;
         
@@ -41,7 +45,10 @@ namespace Riten.Native.Cursors.Virtual
         {
             if (!Application.isPlaying) return;
             
-            if (cmr != _camera) return;
+            if (_camera && cmr != _camera) return;
+
+            if (!_camera)
+                _camera = cmr;
 
             if (!_activeCursor || !_activeCursor.isMask) return;
 
@@ -174,18 +181,26 @@ namespace Riten.Native.Cursors.Virtual
         private Color32[] _stableMaskPixels;
         private Color32[] _liveMaskSourcePixels;
         private Color32[] _liveMaskPixels;
+        private bool _liveMaskHasExplicitInvertedPixels;
         private float _nextLiveMaskUpdateTime;
 
-        private void CaptureScreen()
+        private bool CaptureScreen()
         {
             _screenTexture ??= new Texture2D(_liveMaskTexture.width, _liveMaskTexture.height, TextureFormat.RGBA32, false);
             
             if (_screenTexture.width != _liveMaskTexture.width || _screenTexture.height != _liveMaskTexture.height)
                 _screenTexture.Reinitialize(_liveMaskTexture.width, _liveMaskTexture.height, TextureFormat.RGBA32, false);
 
-            var pos = Input.mousePosition;
+            if (!TryGetMousePosition(out var pos))
+                return false;
+
             var hot = _activeCursor.hotspot * new Vector2(_liveMaskTexture.width, _liveMaskTexture.height);
-            var region = new Rect(pos.x - hot.x, Screen.height - pos.y - hot.y, _screenTexture.width, _screenTexture.height);
+            var region = new Rect(
+                pos.x - hot.x,
+                pos.y + hot.y - _screenTexture.height,
+                _screenTexture.width,
+                _screenTexture.height
+            );
             
             if (region.x + region.width > Screen.width)
                 region.x = Screen.width - region.width;
@@ -201,6 +216,7 @@ namespace Riten.Native.Cursors.Virtual
             
             _screenTexture.ReadPixels(region, 0, 0, false);
             _screenTexture.Apply();
+            return true;
         }
 
         private void SetStableMaskCursor()
@@ -242,7 +258,7 @@ namespace Riten.Native.Cursors.Virtual
                     _activeCursor.hotspot.x * _stableMaskTexture.width,
                     _activeCursor.hotspot.y * _stableMaskTexture.height
                 ),
-                CursorMode.Auto
+                CursorMode.ForceSoftware
             );
         }
 
@@ -256,28 +272,29 @@ namespace Riten.Native.Cursors.Virtual
             else
                 System.Array.Clear(_stableMaskPixels, 0, _stableMaskPixels.Length);
 
+            var hasExplicitInvertedPixels = HasExplicitInvertedMaskPixels(source);
+            var invertedFallback = EnsureOpaque(_activeCursor.backgroundColor, new Color32(0, 0, 0, 255));
             var foreground = EnsureOpaque(_activeCursor.foregroundColor, new Color32(255, 255, 255, 255));
-            var outline = EnsureOpaque(_activeCursor.backgroundColor, GetContrastingColor(foreground));
 
             for (var i = 0; i < pixelCount; ++i)
             {
-                if (source[i].a != 0)
-                    _stableMaskPixels[i] = foreground;
-            }
+                var pixel = source[i];
 
-            var width = texture.width;
-            var height = texture.height;
+                if (pixel.a == 0)
+                    continue;
 
-            for (var y = 0; y < height; ++y)
-            {
-                for (var x = 0; x < width; ++x)
+                if (IsInvertedMaskPixel(pixel))
                 {
-                    var i = y * width + x;
-
-                    if (_stableMaskPixels[i].a != 0) continue;
-                    if (!HasOpaqueNeighbor(source, x, y, width, height)) continue;
-
-                    _stableMaskPixels[i] = outline;
+                    _stableMaskPixels[i] = invertedFallback;
+                }
+                else if (!hasExplicitInvertedPixels)
+                {
+                    _stableMaskPixels[i] = foreground;
+                }
+                else
+                {
+                    pixel.a = 255;
+                    _stableMaskPixels[i] = pixel;
                 }
             }
 
@@ -321,12 +338,17 @@ namespace Riten.Native.Cursors.Virtual
             {
                 _liveMaskSourceTexture = texture;
                 _liveMaskSourcePixels = texture.GetPixels32();
+                _liveMaskHasExplicitInvertedPixels = HasExplicitInvertedMaskPixels(_liveMaskSourcePixels);
             }
 
             if (_liveMaskPixels == null || _liveMaskPixels.Length != pixelCount)
                 _liveMaskPixels = new Color32[pixelCount];
 
-            CaptureScreen();
+            if (!CaptureScreen())
+            {
+                SetStableMaskCursor();
+                return;
+            }
             
             var screen = _screenTexture.GetPixels32();
 
@@ -334,16 +356,20 @@ namespace Riten.Native.Cursors.Virtual
             {
                 var pixel = _liveMaskSourcePixels[i];
 
-                if (pixel.a != 0)
+                if (IsInvertedMaskPixel(pixel) || (pixel.a != 0 && !_liveMaskHasExplicitInvertedPixels))
                 {
                     var screenPixel = screen[i];
                     screenPixel.r = (byte)(255 - screenPixel.r);
                     screenPixel.g = (byte)(255 - screenPixel.g);
                     screenPixel.b = (byte)(255 - screenPixel.b);
+                    screenPixel.a = 255;
                     _liveMaskPixels[i] = screenPixel;
                 }
                 else
                 {
+                    if (pixel.a != 0)
+                        pixel.a = 255;
+
                     _liveMaskPixels[i] = pixel;
                 }
             }
@@ -370,32 +396,41 @@ namespace Riten.Native.Cursors.Virtual
             return color;
         }
 
-        private static Color32 GetContrastingColor(Color32 color)
+        private static bool HasExplicitInvertedMaskPixels(Color32[] pixels)
         {
-            var luminance = color.r * 0.299f + color.g * 0.587f + color.b * 0.114f;
-            return luminance > 127.5f
-                ? new Color32(0, 0, 0, 255)
-                : new Color32(255, 255, 255, 255);
-        }
-
-        private static bool HasOpaqueNeighbor(Color32[] pixels, int x, int y, int width, int height)
-        {
-            var minX = Mathf.Max(0, x - 1);
-            var maxX = Mathf.Min(width - 1, x + 1);
-            var minY = Mathf.Max(0, y - 1);
-            var maxY = Mathf.Min(height - 1, y + 1);
-
-            for (var ny = minY; ny <= maxY; ++ny)
+            for (var i = 0; i < pixels.Length; ++i)
             {
-                for (var nx = minX; nx <= maxX; ++nx)
-                {
-                    if (nx == x && ny == y) continue;
-                    if (pixels[ny * width + nx].a != 0)
-                        return true;
-                }
+                if (IsInvertedMaskPixel(pixels[i]))
+                    return true;
             }
 
             return false;
+        }
+
+        private static bool IsInvertedMaskPixel(Color32 pixel)
+        {
+            return pixel.a == InvertedMaskAlpha;
+        }
+
+        private static bool TryGetMousePosition(out Vector2 position)
+        {
+#if ENABLE_INPUT_SYSTEM
+            var mouse = Mouse.current;
+
+            if (mouse != null)
+            {
+                position = mouse.position.ReadValue();
+                return true;
+            }
+#endif
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+            position = UnityEngine.Input.mousePosition;
+            return true;
+#else
+            position = default;
+            return false;
+#endif
         }
 
         public void SetCamera(Camera cmr)
