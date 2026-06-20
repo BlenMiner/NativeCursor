@@ -211,16 +211,16 @@ namespace Riten.Native.Cursors.Editor.Importers
                 return false;
             }
             
-            br.ReadInt32();
+            var chunkSize = br.ReadUInt32();
+            var chunkEnd = br.BaseStream.Position + chunkSize;
 
             if (!CurImporter.LoadCursorFromBinary(br, out result))
             {
                 Debug.LogError("Failed to load cursor from binary");
                 return false;
             }
-            
-            while (br.PeekChar() == 0)
-                br.ReadByte();
+
+            br.BaseStream.Seek(chunkEnd + (chunkSize & 1), SeekOrigin.Begin);
             
             return true;
         }

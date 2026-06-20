@@ -39,6 +39,11 @@ namespace Riten.Native.Cursors.UI
             _transformDepth = transform.CalculateTransformDepth();
         }
 
+        private void OnDisable()
+        {
+            ClearCursor();
+        }
+
         public void OnPointerEnter(PointerEventData eventData)
         {
             _isHovering = true;
@@ -51,8 +56,17 @@ namespace Riten.Native.Cursors.UI
 
         public void OnPointerExit(PointerEventData eventData)
         {
+            ClearCursor();
+        }
+
+        private void ClearCursor()
+        {
+            if (!_isHovering)
+                return;
+
             _isHovering = false;
             CursorStack.Pop(_pushedId);
+            _pushedId = 0;
         }
     }
 }

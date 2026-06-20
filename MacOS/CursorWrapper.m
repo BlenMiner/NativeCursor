@@ -1,61 +1,73 @@
 #import <Cocoa/Cocoa.h>
 
-void SetCursorToArrow() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor arrowCursor] set];
+static void SetCursorOnMainThread(NSCursor *cursor) {
+    if ([NSThread isMainThread]) {
+        [cursor set];
+        return;
+    }
+
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        [cursor set];
     });
+}
+
+static NSCursor *BusyCursor() {
+    SEL selector = NSSelectorFromString(@"busyButClickableCursor");
+
+    if (![NSCursor respondsToSelector:selector]) {
+        return [NSCursor arrowCursor];
+    }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    return [NSCursor performSelector:selector];
+#pragma clang diagnostic pop
+}
+
+void SetCursorToArrow() {
+    SetCursorOnMainThread([NSCursor arrowCursor]);
 }
 
 void SetCursorToIBeam() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor IBeamCursor] set];
-    });
+    SetCursorOnMainThread([NSCursor IBeamCursor]);
 }
 
 void SetCursorToCrosshair() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor crosshairCursor] set];
-    });
+    SetCursorOnMainThread([NSCursor crosshairCursor]);
 }
 
 void SetCursorToResizeLeftRight() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor resizeLeftRightCursor] set];
-    });
+    SetCursorOnMainThread([NSCursor resizeLeftRightCursor]);
 }
 
 void SetCursorToResizeUpDown() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor resizeUpDownCursor] set];
-    });
+    SetCursorOnMainThread([NSCursor resizeUpDownCursor]);
+}
+
+void SetCursorToResizeUp() {
+    SetCursorOnMainThread([NSCursor resizeUpCursor]);
+}
+
+void SetCursorToResizeDown() {
+    SetCursorOnMainThread([NSCursor resizeDownCursor]);
 }
 
 void SetCursorToOperationNotAllowed() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor operationNotAllowedCursor] set];
-    });
+    SetCursorOnMainThread([NSCursor operationNotAllowedCursor]);
 }
 
 void SetCursorToPointingHand() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor pointingHandCursor] set];
-    });
+    SetCursorOnMainThread([NSCursor pointingHandCursor]);
 }
 
 void SetCursorToOpenHand() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor openHandCursor] set];
-    });
+    SetCursorOnMainThread([NSCursor openHandCursor]);
 }
 
 void SetCursorToClosedHand() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor closedHandCursor] set];
-    });
+    SetCursorOnMainThread([NSCursor closedHandCursor]);
 }
 
 void SetCursorToBusy() {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[NSCursor busyButClickableCursor] set];
-    });
+    SetCursorOnMainThread(BusyCursor());
 }

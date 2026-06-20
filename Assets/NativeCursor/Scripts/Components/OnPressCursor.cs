@@ -39,6 +39,11 @@ namespace Riten.Native.Cursors.UI
             _transformDepth = transform.CalculateTransformDepth();
         }
 
+        private void OnDisable()
+        {
+            ClearCursor();
+        }
+
         public void OnPointerDown(PointerEventData eventData)
         {
             _isPressing = true;
@@ -47,8 +52,17 @@ namespace Riten.Native.Cursors.UI
 
         public void OnPointerUp(PointerEventData eventData)
         {
+            ClearCursor();
+        }
+
+        private void ClearCursor()
+        {
+            if (!_isPressing)
+                return;
+
             _isPressing = false;
             CursorStack.Pop(_pushedId);
+            _pushedId = 0;
         }
     }
 }

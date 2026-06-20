@@ -38,6 +38,7 @@ namespace Riten.Native.Cursors.Editor
 
         private void OnDisable()
         {
+            EditorCursorPatch.targetCursor = null;
             _harmony?.UnpatchAll();
             _harmony = null;
         }
@@ -57,10 +58,11 @@ namespace Riten.Native.Cursors.Editor
         
         void OnPlayModeStateChanged(PlayModeStateChange state)
         {
+            if (state != PlayModeStateChange.ExitingPlayMode)
+                return;
+
             EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
-            
-            if (state == PlayModeStateChange.ExitingPlayMode)
-                OnDisable();
+            OnDisable();
         }
 
         public bool SetCursor(NTCursors ntCursorName)

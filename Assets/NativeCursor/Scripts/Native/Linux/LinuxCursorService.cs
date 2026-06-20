@@ -28,6 +28,9 @@ namespace Riten.Native.Cursors
 
         [DllImport("libX11")]
         static extern IntPtr XRootWindow(IntPtr display, int screen);
+
+        [DllImport("libX11")]
+        static extern int XGetInputFocus(IntPtr display, out IntPtr focusReturn, out int revertToReturn);
         
         [DllImport("libX11")]
         static extern IntPtr XCreateFontCursor(IntPtr display, uint shape);
@@ -36,7 +39,16 @@ namespace Riten.Native.Cursors
         static extern int XDefineCursor(IntPtr display, IntPtr window, IntPtr cursor);
 
         [DllImport("libX11")]
+        static extern int XUndefineCursor(IntPtr display, IntPtr window);
+
+        [DllImport("libX11")]
         static extern int XFlush(IntPtr display);
+
+        [DllImport("libX11")]
+        static extern int XFreeCursor(IntPtr display, IntPtr cursor);
+
+        [DllImport("libX11")]
+        static extern int XCloseDisplay(IntPtr display);
         
         private const uint XC_arrow = 2;                    // Arrow
         private const uint XC_xterm = 152;                  // IBeam
@@ -55,9 +67,13 @@ namespace Riten.Native.Cursors
 
         private IntPtr _display;
         private IntPtr _window;
+        private NTCursors _activeCursor = NTCursors.Default;
         
         IntPtr Load(uint cursor)
         {
+            if (_display == IntPtr.Zero)
+                return IntPtr.Zero;
+
             return XCreateFontCursor(_display, cursor);
         }
         
@@ -82,7 +98,7 @@ namespace Riten.Native.Cursors
                 NTCursors.ResizeAll => Load(XC_fleur),
                 NTCursors.OpenHand => Load(XC_hand1),
                 NTCursors.ClosedHand => Load(XC_hand1),
-                _ => throw new ArgumentOutOfRangeException(nameof(cursor), cursor, null)
+                _ => throw new ArgumentOutOfRangeException(nameof(nativeCursor), nativeCursor, null)
             };
             
             _cursors.Add(nativeCursor, cursor);
@@ -99,19 +115,72 @@ namespace Riten.Native.Cursors
                 return;
             }
             
-            _window = XRootWindow(_display, 0);
+            _window = GetTargetWindow();
             
             if (_window == IntPtr.Zero)
             {
-                Debug.LogError("Failed to get root window");
+                Debug.LogError("Failed to get cursor target window");
                 return;
             }
             
-            Debug.Log($"Display: {_display}; RootWindow: {_window}");
+            Debug.Log($"Display: {_display}; CursorWindow: {_window}");
+        }
+
+        private void OnDestroy()
+        {
+            if (_display == IntPtr.Zero)
+                return;
+
+            foreach (var cursor in _cursors.Values)
+            {
+                if (cursor != IntPtr.Zero)
+                    XFreeCursor(_display, cursor);
+            }
+
+            _cursors.Clear();
+            XCloseDisplay(_display);
+            _display = IntPtr.Zero;
+            _window = IntPtr.Zero;
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (hasFocus)
+                SetCursor(_activeCursor);
+        }
+
+        private IntPtr GetTargetWindow()
+        {
+            if (_display == IntPtr.Zero)
+                return IntPtr.Zero;
+
+            XGetInputFocus(_display, out var focusedWindow, out _);
+
+            if (focusedWindow == IntPtr.Zero || focusedWindow == new IntPtr(1))
+                focusedWindow = XRootWindow(_display, 0);
+
+            return focusedWindow;
         }
 
         public bool SetCursor(NTCursors nativeCursorName)
         {
+            _activeCursor = nativeCursorName;
+
+            if (_display == IntPtr.Zero)
+                return false;
+
+            _window = GetTargetWindow();
+
+            if (_window == IntPtr.Zero)
+                return false;
+
+            if (nativeCursorName == NTCursors.Default)
+            {
+                XUndefineCursor(_display, _window);
+                XFlush(_display);
+                return true;
+            }
+
             var cursor = LoadCursor(nativeCursorName);
 
             if (cursor == IntPtr.Zero)

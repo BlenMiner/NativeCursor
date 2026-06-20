@@ -11,7 +11,7 @@ namespace Riten.Native.Cursors
     {
         private const uint IDC_ARROW = 32512;        // Normal select
         private const uint IDC_IBEAM = 32513;        // Text select
-        private const uint IDC_WAIT = 32650;         // Busy
+        private const uint IDC_WAIT = 32514;         // Busy
         private const uint IDC_CROSS = 32515;        // Precision select
         private const uint IDC_SIZENWSE = 32642;     // Diagonal resize 1
         private const uint IDC_SIZENESW = 32643;     // Diagonal resize 2
@@ -45,12 +45,9 @@ namespace Riten.Native.Cursors
         [DllImport("user32.dll")]
         private static extern IntPtr GetActiveWindow();
 
-        [DllImport("user32.dll", EntryPoint = "CallWindowProcA")]
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint wMsg, IntPtr wParam,
             IntPtr lParam);
-
-        [DllImport("user32.dll", EntryPoint = "DefWindowProcA")]
-        private static extern IntPtr DefWindowProc(IntPtr hWnd, uint wMsg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
         private static extern int SetWindowLong32(HandleRef hWnd, int nIndex, int dwNewLong);
@@ -66,8 +63,8 @@ namespace Riten.Native.Cursors
         private static WndProcDelegate procDelegate;
 
         private const int GWLP_WNDPROC = -4;
+        private const int HTCLIENT = 1;
         private const uint WM_SETCURSOR = 0x0020;
-        private const uint WM_MOUSEMOVE = 0x0200;
 
         private static IntPtr cursorHandle;
 
@@ -75,17 +72,47 @@ namespace Riten.Native.Cursors
 
         void Awake()
         {
-            cursorHandle = LoadCursor(IntPtr.Zero, IDC_HAND);
+            cursorHandle = GetCursor(NTCursors.Default);
+            InstallHook();
+        }
 
-            hMainWindow = new HandleRef(null, GetActiveWindow());
+        void OnApplicationFocus(bool hasFocus)
+        {
+            if (hasFocus && cursorHandle != IntPtr.Zero)
+            {
+                InstallHook();
+                SetCursor(cursorHandle);
+            }
+        }
+
+        private static void InstallHook()
+        {
+            if (customWndProcHandler != IntPtr.Zero)
+                return;
+
+            var window = GetActiveWindow();
+
+            if (window == IntPtr.Zero)
+                return;
+
+            hMainWindow = new HandleRef(null, window);
             procDelegate = WndProc;
             customWndProcHandler = Marshal.GetFunctionPointerForDelegate(procDelegate);
             unityWndProcHandler = SetWindowLongPtr(hMainWindow, GWLP_WNDPROC, customWndProcHandler);
+
+            if (unityWndProcHandler != IntPtr.Zero)
+                return;
+
+            hMainWindow = new HandleRef(null, IntPtr.Zero);
+            customWndProcHandler = IntPtr.Zero;
+            procDelegate = null;
         }
 
         void OnDestroy()
         {
-            SetWindowLongPtr(hMainWindow, GWLP_WNDPROC, unityWndProcHandler);
+            if (hMainWindow.Handle != IntPtr.Zero && unityWndProcHandler != IntPtr.Zero)
+                SetWindowLongPtr(hMainWindow, GWLP_WNDPROC, unityWndProcHandler);
+
             hMainWindow = new HandleRef(null, IntPtr.Zero);
             unityWndProcHandler = IntPtr.Zero;
             customWndProcHandler = IntPtr.Zero;
@@ -95,11 +122,18 @@ namespace Riten.Native.Cursors
         [AOT.MonoPInvokeCallback(typeof(WndProcDelegate))]
         private static IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
-            if (msg != WM_SETCURSOR && msg != WM_MOUSEMOVE)
-                return CallWindowProc(unityWndProcHandler, hWnd, msg, wParam, lParam);
+            if (msg == WM_SETCURSOR && IsClientCursorMessage(lParam) && cursorHandle != IntPtr.Zero)
+            {
+                SetCursor(cursorHandle);
+                return new IntPtr(1);
+            }
 
-            SetCursor(cursorHandle);
-            return DefWindowProc(hWnd, msg, wParam, lParam);
+            return CallWindowProc(unityWndProcHandler, hWnd, msg, wParam, lParam);
+        }
+
+        private static bool IsClientCursorMessage(IntPtr lParam)
+        {
+            return ((int)lParam & 0xffff) == HTCLIENT;
         }
 
         private static IntPtr SetWindowLongPtr(HandleRef hWnd, int nIndex, IntPtr dwNewLong)
@@ -128,7 +162,7 @@ namespace Riten.Native.Cursors
                 NTCursors.Busy => IDC_WAIT,
                 NTCursors.Invalid => IDC_NO,
                 
-                NTCursors.OpenHand => 32516,
+                NTCursors.OpenHand => IDC_HAND,
                 NTCursors.ClosedHand => IDC_HAND,
                 
                 _ => throw new ArgumentOutOfRangeException(nameof(nativeCursorName), nativeCursorName, null)
@@ -146,6 +180,7 @@ namespace Riten.Native.Cursors
                 return false;
 
             cursorHandle = arrowCursorHandle;
+            InstallHook();
             SetCursor(arrowCursorHandle);
             return true;
         }

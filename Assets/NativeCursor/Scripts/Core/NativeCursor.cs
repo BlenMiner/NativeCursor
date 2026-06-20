@@ -9,8 +9,19 @@ namespace Riten.Native.Cursors
 
         private static ICursorService _defaultService;
         private static VirtualCursorService _vcs;
-        
+
         public static string ServiceName => _instance == null ? "NULL" : _instance.GetType().Name;
+        public static MaskCursorMode VirtualMaskCursorMode
+        {
+            get => VirtualCursorService.maskCursorMode;
+            set => VirtualCursorService.maskCursorMode = value;
+        }
+
+        public static int LiveMaskInversionUpdatesPerSecond
+        {
+            get => VirtualCursorService.liveMaskInversionUpdatesPerSecond;
+            set => VirtualCursorService.liveMaskInversionUpdatesPerSecond = Mathf.Max(1, value);
+        }
         
         public static void SetFallbackService(ICursorService service)
         {
@@ -29,7 +40,11 @@ namespace Riten.Native.Cursors
             
             _instance?.ResetCursor();
             _instance = service;
-            _instance?.SetCursor(NTCursors.Default);
+
+            if (_instance == null)
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+            else
+                _instance.SetCursor(NTCursors.Default);
         }
         
         public static bool SetCursor(NTCursors ntCursor)

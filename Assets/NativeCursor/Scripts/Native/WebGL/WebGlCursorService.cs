@@ -13,7 +13,9 @@ namespace Riten.Native.Cursors
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Setup()
         {
-            NativeCursor.SetService(new WebGlCursorService());
+            var service = new WebGlCursorService();
+            NativeCursor.SetFallbackService(service);
+            NativeCursor.SetService(service);
         }
         
         public bool SetCursor(NTCursors cursor)

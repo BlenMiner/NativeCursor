@@ -37,6 +37,16 @@ namespace Riten.Native.Cursors.UI
             _transformDepth = transform.CalculateTransformDepth();
         }
 
+        private void OnTransformParentChanged()
+        {
+            _transformDepth = transform.CalculateTransformDepth();
+        }
+
+        private void OnDisable()
+        {
+            ClearCursor();
+        }
+
         public void OnBeginDrag(PointerEventData eventData)
         {
             _isDragging = true;
@@ -47,8 +57,17 @@ namespace Riten.Native.Cursors.UI
 
         public void OnEndDrag(PointerEventData eventData)
         {
+            ClearCursor();
+        }
+
+        private void ClearCursor()
+        {
+            if (!_isDragging)
+                return;
+
             _isDragging = false;
             CursorStack.Pop(_pushedId);
+            _pushedId = 0;
         }
     }
 }

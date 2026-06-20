@@ -1,0 +1,65 @@
+name: Build Native Cursor Plugin
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "MacOS/**"
+      - "Assets/NativeCursor/Scripts/Native/MacOS/MacOSCursorService.cs"
+      - ".github/workflows/build-native-cursor-plugin.yml"
+  push:
+    paths:
+      - "MacOS/**"
+      - "Assets/NativeCursor/Scripts/Native/MacOS/MacOSCursorService.cs"
+      - ".github/workflows/build-native-cursor-plugin.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos-wrapper:
+    name: Build macOS wrapper
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compile CursorWrapper.dylib
+        run: |
+          set -euo pipefail
+
+          output="Assets/NativeCursor/Scripts/Native/MacOS/Plugins/CursorWrapper.dylib"
+          mkdir -p "$(dirname "$output")"
+
+          xcrun clang \
+            -dynamiclib \
+            -arch x86_64 \
+            -arch arm64 \
+            -mmacosx-version-min=10.13 \
+            -framework Cocoa \
+            -install_name "@rpath/CursorWrapper.dylib" \
+            MacOS/CursorWrapper.m \
+            -o "$output"
+
+          lipo -info "$output"
+
+      - name: Commit rebuilt plugin
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+
+          output="Assets/NativeCursor/Scripts/Native/MacOS/Plugins/CursorWrapper.dylib"
+
+          if git diff --quiet -- "$output"; then
+            echo "CursorWrapper.dylib is already up to date."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$output"
+          git commit -m "Build macOS cursor wrapper"
+          git push
