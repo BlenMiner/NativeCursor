@@ -1,0 +1,62 @@
+name: Build Docs
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "README.md"
+      - "native-cursor-docs/**"
+      - ".github/workflows/build-docs.yml"
+  push:
+    paths:
+      - "README.md"
+      - "native-cursor-docs/**"
+      - ".github/workflows/build-docs.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-docs:
+    name: Build MkDocs site
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: native-cursor-docs/requirements.txt
+
+      - name: Install PDF system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libcairo2 \
+            libffi-dev \
+            libgdk-pixbuf-2.0-0 \
+            libglib2.0-0 \
+            libharfbuzz-subset0 \
+            libjpeg-dev \
+            libopenjp2-7-dev \
+            libpango-1.0-0 \
+            libpangocairo-1.0-0 \
+            shared-mime-info
+
+      - name: Install docs dependencies
+        run: python -m pip install -r native-cursor-docs/requirements.txt
+
+      - name: Build docs
+        working-directory: native-cursor-docs
+        run: mkdocs build --strict --clean
+
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-cursor-docs-site
+          path: native-cursor-docs/site
+          if-no-files-found: error

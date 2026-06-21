@@ -28,7 +28,9 @@ public static class NativeCursor
 > ⚠️ Editor doesn't reflect the actual cursor, it should be considered as a placeholder for testing purposes.
 > It's best to test in a build.
 
-> The `Busy` and `Invalid` cursors are known to be unreliable on MacOS.
+> Some platforms use the closest available native cursor when the OS does not expose an exact visual match.
+
+See [Platform Behavior](platformBehavior.md) for the exact native mappings and the build-only cursor hardening behavior.
 
 ```c#
 namespace Riten.Native.Cursors;

@@ -1,4 +1,4 @@
-name: Build Native Cursor Plugin
+name: Build Native Cursor Native Libraries
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build-macos-wrapper:
-    name: Build macOS wrapper
+    name: Build macOS CursorWrapper.dylib
     runs-on: macos-latest
 
     steps:
@@ -45,6 +45,13 @@ jobs:
             -o "$output"
 
           lipo -info "$output"
+
+      - name: Upload native library artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-cursor-macos-CursorWrapper
+          path: Assets/NativeCursor/Scripts/Native/MacOS/Plugins/CursorWrapper.dylib
+          if-no-files-found: error
 
       - name: Commit rebuilt plugin
         if: github.event_name != 'pull_request'

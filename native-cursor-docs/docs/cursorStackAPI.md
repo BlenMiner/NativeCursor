@@ -19,6 +19,11 @@ public static class CursorStack
     public static int Push(NTCursors cursor, int priority = 0, int secondaryPriority = 0);
 
     /// <summary>
+    /// Pushes a cursor and returns a disposable handle that pops it when disposed.
+    /// </summary>
+    public static CursorStackScope PushScoped(NTCursors cursor, int priority = 0, int secondaryPriority = 0);
+
+    /// <summary>
     /// Replace the cursor with the given id with the given cursor.
     /// This will not change the priority of the cursor.
     /// Use this if you want to change a cursor that is already in the stack.
@@ -96,4 +101,15 @@ var cursorId = CursorStack.Push(NTCursors.Link);
 // Pop the cursor from the stack.
 CursorStack.Pop(cursorId);
 
+// Scoped push.
+using (CursorStack.PushScoped(NTCursors.Busy))
+{
+    // The Busy cursor is active until the scope exits.
+}
+
 ```
+
+## Debugger
+
+You can inspect the current stack in **Window > Native Cursor > Cursor Stack Debugger**.
+The debugger shows the active cursor, stack entries, priorities, and includes controls to pause rendering, reapply, pop, or clear the stack.

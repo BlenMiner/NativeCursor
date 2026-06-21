@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -10,6 +11,26 @@ namespace Riten.Native.Cursors
         public int priority;
         public int secondaryPriority;
     }
+
+    public sealed class CursorStackScope : IDisposable
+    {
+        public int Id { get; private set; }
+
+        internal CursorStackScope(int id)
+        {
+            Id = id;
+        }
+
+        public void Dispose()
+        {
+            if (Id == 0)
+                return;
+
+            var id = Id;
+            Id = 0;
+            CursorStack.Pop(id);
+        }
+    }
     
     public static class CursorStack
     {
@@ -18,12 +39,33 @@ namespace Riten.Native.Cursors
         
         static readonly List<CursorStackItem> _stack = new ();
 
+        public static event Action Changed;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Setup()
         {
             _stack.Clear();
             _nextUid = 1;
             _paused = false;
+            NotifyChanged();
+        }
+
+        public static int Count => _stack.Count;
+
+        public static bool IsRenderingPaused => _paused;
+
+        public static void CopyItemsTo(List<CursorStackItem> items)
+        {
+            if (items == null)
+                throw new ArgumentNullException(nameof(items));
+
+            items.Clear();
+            items.AddRange(_stack);
+        }
+
+        static void NotifyChanged()
+        {
+            Changed?.Invoke();
         }
         
         static void OnStackChanged(bool force = false)
@@ -65,6 +107,7 @@ namespace Riten.Native.Cursors
         {
             _paused = isPaused;
             OnStackChanged();
+            NotifyChanged();
         }
         
         /// <summary>
@@ -73,6 +116,7 @@ namespace Riten.Native.Cursors
         public static void ReApply()
         {
             OnStackChanged(true);
+            NotifyChanged();
         }
 
         /// <summary>
@@ -95,7 +139,17 @@ namespace Riten.Native.Cursors
             if (Peek().id == uid)
                 OnStackChanged();
 
+            NotifyChanged();
+
             return uid;
+        }
+
+        /// <summary>
+        /// Pushes a cursor and returns a disposable handle that pops it when disposed.
+        /// </summary>
+        public static CursorStackScope PushScoped(NTCursors cursor, int priority = 0, int secondaryPriority = 0)
+        {
+            return new CursorStackScope(Push(cursor, priority, secondaryPriority));
         }
         
         /// <summary>
@@ -138,6 +192,7 @@ namespace Riten.Native.Cursors
             if (removed)
             {
                 OnStackChanged();
+                NotifyChanged();
                 return true;
             }
 
@@ -155,6 +210,7 @@ namespace Riten.Native.Cursors
             
             _stack.Clear();
             OnStackChanged();
+            NotifyChanged();
         }
         
         /// <summary>
@@ -224,6 +280,8 @@ namespace Riten.Native.Cursors
                     
                     if (peek.id == id)
                         OnStackChanged();
+
+                    NotifyChanged();
                     return true;
                 }
             }

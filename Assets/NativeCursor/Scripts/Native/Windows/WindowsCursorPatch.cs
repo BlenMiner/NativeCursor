@@ -40,10 +40,22 @@ namespace Riten.Native.Cursors
         static extern IntPtr SetCursor(IntPtr hCursor);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        static extern IntPtr GetCursor();
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern IntPtr LoadCursor(IntPtr hInstance, uint lpCursorName);
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetActiveWindow();
+
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        private static extern bool ScreenToClient(IntPtr hWnd, ref POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint wMsg, IntPtr wParam,
@@ -62,11 +74,28 @@ namespace Riten.Native.Cursors
 
         private static WndProcDelegate procDelegate;
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int x;
+            public int y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int left;
+            public int top;
+            public int right;
+            public int bottom;
+        }
+
         private const int GWLP_WNDPROC = -4;
         private const int HTCLIENT = 1;
         private const uint WM_SETCURSOR = 0x0020;
 
         private static IntPtr cursorHandle;
+        private bool _hasFocus = true;
 
         static readonly Dictionary<NTCursors, IntPtr> _cursors = new ();
 
@@ -76,8 +105,22 @@ namespace Riten.Native.Cursors
             InstallHook();
         }
 
+        void Update()
+        {
+            if (!_hasFocus || cursorHandle == IntPtr.Zero)
+                return;
+
+            if (customWndProcHandler == IntPtr.Zero)
+                InstallHook();
+
+            if (IsCursorInsideClientArea() && GetCursor() != cursorHandle)
+                SetCursor(cursorHandle);
+        }
+
         void OnApplicationFocus(bool hasFocus)
         {
+            _hasFocus = hasFocus;
+
             if (hasFocus && cursorHandle != IntPtr.Zero)
             {
                 InstallHook();
@@ -139,6 +182,26 @@ namespace Riten.Native.Cursors
         private static bool IsClientCursorMessage(IntPtr lParam)
         {
             return ((int)lParam & 0xffff) == HTCLIENT;
+        }
+
+        private static bool IsCursorInsideClientArea()
+        {
+            if (hMainWindow.Handle == IntPtr.Zero)
+                return true;
+
+            if (!GetCursorPos(out var point))
+                return true;
+
+            if (!ScreenToClient(hMainWindow.Handle, ref point))
+                return true;
+
+            if (!GetClientRect(hMainWindow.Handle, out var clientRect))
+                return true;
+
+            return point.x >= clientRect.left
+                   && point.x < clientRect.right
+                   && point.y >= clientRect.top
+                   && point.y < clientRect.bottom;
         }
 
         private static IntPtr SetWindowLongPtr(HandleRef hWnd, int nIndex, IntPtr dwNewLong)

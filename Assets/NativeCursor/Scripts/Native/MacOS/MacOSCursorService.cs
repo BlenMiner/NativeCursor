@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Riten.Native.Cursors
 {
-    public class MacOSCursorService : ICursorService
+    public class MacOSCursorService : MonoBehaviour, ICursorService
     {
         [DllImport("CursorWrapper")]
         private static extern void SetCursorToArrow();
@@ -41,13 +41,36 @@ namespace Riten.Native.Cursors
         
         [DllImport("CursorWrapper")]
         private static extern void SetCursorToBusy();
+
+        [DllImport("CursorWrapper")]
+        private static extern void ReapplyNativeCursor();
+
+        [DllImport("CursorWrapper")]
+        private static extern void DisableNativeCursorOverride();
         
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Setup()
         {
-            var service = new MacOSCursorService();
+            var go = new GameObject("NativeCursor#MacOSCursorService")
+            {
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            DontDestroyOnLoad(go);
+
+            var service = go.AddComponent<MacOSCursorService>();
             NativeCursor.SetFallbackService(service);
             NativeCursor.SetService(service);
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (hasFocus)
+                ReapplyNativeCursor();
+        }
+
+        private void OnDestroy()
+        {
+            DisableNativeCursorOverride();
         }
 
         public bool SetCursor(NTCursors cursor)

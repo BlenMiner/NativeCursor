@@ -1,0 +1,4 @@
+mkdocs>=1.6,<2
+mkdocs-material>=9.5,<10
+mkdocs-with-pdf>=0.9,<1
+pymdown-extensions>=10,<11

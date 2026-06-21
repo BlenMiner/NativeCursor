@@ -16,3 +16,4 @@ Currently, it supports **WebGL**, **Windows**, **MacOS** and **Linux**.
 ## How does it work?
 
 It relies on P/Invoke to call the native APIs of each platform.
+Player builds keep the selected OS cursor active even when Unity or the operating system tries to replace it. See [Platform Behavior](platformBehavior.md) for the per-platform details and cursor mappings.

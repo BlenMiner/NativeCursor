@@ -12,6 +12,8 @@ Virtual cursors allows you to use `.cur` and `.ani` files for your game.
 
 WebGL, Windows, MacOS and Linux
 
+All `NTCursors` values are mapped on every supported platform. Some operating systems do not expose a perfect visual match for every shape, so Native Cursor uses the closest native OS cursor rather than falling back to a software cursor.
+
 ## Docs
 
 https://gameobject.xyz/nativecursor/

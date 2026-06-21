@@ -39,9 +39,6 @@ namespace Riten.Native.Cursors
         static extern int XDefineCursor(IntPtr display, IntPtr window, IntPtr cursor);
 
         [DllImport("libX11")]
-        static extern int XUndefineCursor(IntPtr display, IntPtr window);
-
-        [DllImport("libX11")]
         static extern int XFlush(IntPtr display);
 
         [DllImport("libX11")]
@@ -49,6 +46,18 @@ namespace Riten.Native.Cursors
 
         [DllImport("libX11")]
         static extern int XCloseDisplay(IntPtr display);
+
+        [DllImport("libX11")]
+        static extern int XPending(IntPtr display);
+
+        [DllImport("libX11")]
+        static extern int XNextEvent(IntPtr display, out XEvent xevent);
+
+        [DllImport("libXfixes")]
+        static extern bool XFixesQueryExtension(IntPtr display, out int eventBase, out int errorBase);
+
+        [DllImport("libXfixes")]
+        static extern void XFixesSelectCursorInput(IntPtr display, IntPtr window, long eventMask);
         
         private const uint XC_arrow = 2;                    // Arrow
         private const uint XC_xterm = 152;                  // IBeam
@@ -62,12 +71,27 @@ namespace Riten.Native.Cursors
         private const uint XC_bottom_right_corner = 14;     // ResizeDiagonalRight
         private const uint XC_fleur = 52;                   // ResizeAll
         private const uint XC_hand2 = 60;                   // DragDrop
+        private const int XFixesCursorNotify = 1;
+        private const long XFixesDisplayCursorNotifyMask = 1;
 
         readonly Dictionary<NTCursors, IntPtr> _cursors = new ();
 
         private IntPtr _display;
         private IntPtr _window;
         private NTCursors _activeCursor = NTCursors.Default;
+        private bool _hasFocus = true;
+        private bool _hasCursorNotifications;
+        private bool _ignoreNextCursorNotify;
+        private float _ignoreNextCursorNotifyUntil;
+        private int _xfixesCursorNotifyEvent;
+        private float _nextWindowRefreshTime;
+        private float _nextFallbackReapplyTime;
+
+        [StructLayout(LayoutKind.Sequential, Size = 192)]
+        private struct XEvent
+        {
+            public int type;
+        }
         
         IntPtr Load(uint cursor)
         {
@@ -115,7 +139,8 @@ namespace Riten.Native.Cursors
                 return;
             }
             
-            _window = GetTargetWindow();
+            TryInitializeCursorNotifications();
+            RefreshTargetWindow();
             
             if (_window == IntPtr.Zero)
             {
@@ -124,6 +149,32 @@ namespace Riten.Native.Cursors
             }
             
             Debug.Log($"Display: {_display}; CursorWindow: {_window}");
+        }
+
+        private void Update()
+        {
+            if (_display == IntPtr.Zero || !_hasFocus)
+                return;
+
+            if (Time.unscaledTime >= _nextWindowRefreshTime)
+            {
+                _nextWindowRefreshTime = Time.unscaledTime + 0.25f;
+                RefreshTargetWindow();
+            }
+
+            if (_hasCursorNotifications)
+            {
+                if (ProcessCursorEvents())
+                    ApplyCursor(_activeCursor);
+
+                return;
+            }
+
+            if (Time.unscaledTime >= _nextFallbackReapplyTime)
+            {
+                _nextFallbackReapplyTime = Time.unscaledTime + 0.5f;
+                ApplyCursor(_activeCursor);
+            }
         }
 
         private void OnDestroy()
@@ -145,8 +196,13 @@ namespace Riten.Native.Cursors
 
         private void OnApplicationFocus(bool hasFocus)
         {
-            if (hasFocus)
-                SetCursor(_activeCursor);
+            _hasFocus = hasFocus;
+
+            if (!hasFocus)
+                return;
+
+            RefreshTargetWindow();
+            ApplyCursor(_activeCursor);
         }
 
         private IntPtr GetTargetWindow()
@@ -162,24 +218,90 @@ namespace Riten.Native.Cursors
             return focusedWindow;
         }
 
+        private void TryInitializeCursorNotifications()
+        {
+            try
+            {
+                if (!XFixesQueryExtension(_display, out var eventBase, out _))
+                    return;
+
+                _xfixesCursorNotifyEvent = eventBase + XFixesCursorNotify;
+                _hasCursorNotifications = true;
+            }
+            catch (DllNotFoundException)
+            {
+                _hasCursorNotifications = false;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                _hasCursorNotifications = false;
+            }
+        }
+
+        private void RefreshTargetWindow()
+        {
+            var window = GetTargetWindow();
+
+            if (window == IntPtr.Zero || window == _window)
+                return;
+
+            _window = window;
+            SelectCursorNotifications();
+            ApplyCursor(_activeCursor);
+        }
+
+        private void SelectCursorNotifications()
+        {
+            if (!_hasCursorNotifications || _window == IntPtr.Zero)
+                return;
+
+            XFixesSelectCursorInput(_display, _window, XFixesDisplayCursorNotifyMask);
+        }
+
+        private bool ProcessCursorEvents()
+        {
+            if (!_hasCursorNotifications)
+                return false;
+
+            var shouldReapply = false;
+
+            while (XPending(_display) > 0)
+            {
+                XNextEvent(_display, out var xevent);
+
+                if (xevent.type != _xfixesCursorNotifyEvent)
+                    continue;
+
+                if (_ignoreNextCursorNotify && Time.unscaledTime > _ignoreNextCursorNotifyUntil)
+                    _ignoreNextCursorNotify = false;
+
+                if (_ignoreNextCursorNotify)
+                {
+                    _ignoreNextCursorNotify = false;
+                    continue;
+                }
+
+                shouldReapply = true;
+            }
+
+            return shouldReapply;
+        }
+
         public bool SetCursor(NTCursors nativeCursorName)
         {
             _activeCursor = nativeCursorName;
+            return ApplyCursor(nativeCursorName);
+        }
 
+        private bool ApplyCursor(NTCursors nativeCursorName)
+        {
             if (_display == IntPtr.Zero)
                 return false;
 
-            _window = GetTargetWindow();
+            RefreshTargetWindow();
 
             if (_window == IntPtr.Zero)
                 return false;
-
-            if (nativeCursorName == NTCursors.Default)
-            {
-                XUndefineCursor(_display, _window);
-                XFlush(_display);
-                return true;
-            }
 
             var cursor = LoadCursor(nativeCursorName);
 
@@ -191,6 +313,8 @@ namespace Riten.Native.Cursors
 
             XDefineCursor(_display, _window, cursor);
             XFlush(_display);
+            _ignoreNextCursorNotify = true;
+            _ignoreNextCursorNotifyUntil = Time.unscaledTime + 0.1f;
             return true;
         }
 

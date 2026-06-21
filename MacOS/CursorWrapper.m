@@ -1,14 +1,79 @@
 #import <Cocoa/Cocoa.h>
+#import <objc/runtime.h>
+
+typedef void (*CursorSetImplementation)(id self, SEL _cmd);
+
+static NSCursor *activeCursor = nil;
+static BOOL cursorOverrideEnabled = NO;
+static BOOL applyingNativeCursor = NO;
+static CursorSetImplementation originalCursorSet = NULL;
+
+static void ApplyCursor(NSCursor *cursor);
+
+static void NativeCursorSet(id self, SEL _cmd) {
+    if (cursorOverrideEnabled && !applyingNativeCursor && activeCursor != nil && self != activeCursor) {
+        ApplyCursor(activeCursor);
+        return;
+    }
+
+    originalCursorSet(self, _cmd);
+}
+
+static void InstallCursorOverride() {
+    if (originalCursorSet != NULL) {
+        return;
+    }
+
+    Method setMethod = class_getInstanceMethod([NSCursor class], @selector(set));
+    originalCursorSet = (CursorSetImplementation)method_setImplementation(setMethod, (IMP)NativeCursorSet);
+}
+
+static void ApplyCursor(NSCursor *cursor) {
+    if (cursor == nil) {
+        return;
+    }
+
+    InstallCursorOverride();
+    applyingNativeCursor = YES;
+
+    if (originalCursorSet != NULL) {
+        originalCursorSet(cursor, @selector(set));
+    } else {
+        [cursor set];
+    }
+
+    applyingNativeCursor = NO;
+}
+
+static void SetActiveCursor(NSCursor *cursor) {
+    if (cursor == nil) {
+        return;
+    }
+
+    InstallCursorOverride();
+
+    [cursor retain];
+    [activeCursor release];
+    activeCursor = cursor;
+    cursorOverrideEnabled = YES;
+    ApplyCursor(activeCursor);
+}
 
 static void SetCursorOnMainThread(NSCursor *cursor) {
     if ([NSThread isMainThread]) {
-        [cursor set];
+        SetActiveCursor(cursor);
         return;
     }
 
     dispatch_sync(dispatch_get_main_queue(), ^{
-        [cursor set];
+        SetActiveCursor(cursor);
     });
+}
+
+static void DisableCursorOverride() {
+    cursorOverrideEnabled = NO;
+    [activeCursor release];
+    activeCursor = nil;
 }
 
 static NSCursor *BusyCursor() {
@@ -70,4 +135,26 @@ void SetCursorToClosedHand() {
 
 void SetCursorToBusy() {
     SetCursorOnMainThread(BusyCursor());
+}
+
+void ReapplyNativeCursor() {
+    if ([NSThread isMainThread]) {
+        ApplyCursor(activeCursor);
+        return;
+    }
+
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        ApplyCursor(activeCursor);
+    });
+}
+
+void DisableNativeCursorOverride() {
+    if ([NSThread isMainThread]) {
+        DisableCursorOverride();
+        return;
+    }
+
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        DisableCursorOverride();
+    });
 }
