@@ -131,7 +131,22 @@ namespace Riten.Native.Cursors
 
         private void Awake()
         {
-            _display = XOpenDisplay(null);
+            try
+            {
+                _display = XOpenDisplay(null);
+            }
+            catch (DllNotFoundException)
+            {
+                Debug.LogError("Native Cursor could not load libX11. Linux native cursor support is disabled.");
+                enabled = false;
+                return;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                Debug.LogError("Native Cursor could not find the required libX11 entry points. Linux native cursor support is disabled.");
+                enabled = false;
+                return;
+            }
             
             if (_display == IntPtr.Zero)
             {
@@ -147,8 +162,6 @@ namespace Riten.Native.Cursors
                 Debug.LogError("Failed to get cursor target window");
                 return;
             }
-            
-            Debug.Log($"Display: {_display}; CursorWindow: {_window}");
         }
 
         private void Update()

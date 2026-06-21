@@ -7,6 +7,7 @@ This is useful for games that want to use the OS's cursor instead of a custom on
 
 There are two modes, virtual and native cursors.
 Virtual cursors allows you to use `.cur` and `.ani` files for your game.
+Cursor stack helpers, UGUI components, UI Toolkit bindings, and an editor stack debugger are included for common interaction flows.
 
 ## Compatibility
 

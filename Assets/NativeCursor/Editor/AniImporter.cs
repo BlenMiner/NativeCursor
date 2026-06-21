@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor.AssetImporters;
@@ -19,32 +20,38 @@ namespace Riten.Native.Cursors.Editor.Importers
     [ScriptedImporter(1, "ani")]
     public class AniImporter : ScriptedImporter
     {
-        [SerializeField] float _animSpeedMultiplier = 10f;
+        [SerializeField, Min(0.01f)] float _animSpeedMultiplier = 10f;
         [Space]
         [SerializeField] bool _useTargetSize;
-        [SerializeField] Vector2Int _targetSize;
+        [SerializeField] Vector2Int _targetSize = new(32, 32);
         
-        static Texture2D Resize(Texture2D texture2D,int targetX,int targetY)
+        static Texture2D Resize(Texture2D texture2D, int targetX, int targetY)
         {
-            var rt=new RenderTexture(targetX, targetY,24, RenderTextureFormat.ARGB32, 4)
+            var previous = RenderTexture.active;
+            var rt = RenderTexture.GetTemporary(targetX, targetY, 0, RenderTextureFormat.ARGB32);
+
+            try
             {
-                filterMode = FilterMode.Bilinear,
-                useMipMap = true,
-                antiAliasing = 4,
-                anisoLevel = 4,
-                autoGenerateMips = true
-            };
-            
-            RenderTexture.active = rt;
-            Graphics.Blit(texture2D,rt);
-            var result=new Texture2D(targetX,targetY,texture2D.format,false)
+                rt.filterMode = FilterMode.Bilinear;
+                Graphics.Blit(texture2D, rt);
+                RenderTexture.active = rt;
+
+                var result = new Texture2D(targetX, targetY, TextureFormat.RGBA32, false)
+                {
+                    alphaIsTransparency = true,
+                    filterMode = FilterMode.Bilinear,
+                    wrapMode = TextureWrapMode.Clamp
+                };
+
+                result.ReadPixels(new Rect(0, 0, targetX, targetY), 0, 0);
+                result.Apply();
+                return result;
+            }
+            finally
             {
-                alphaIsTransparency = true,
-                filterMode = FilterMode.Bilinear
-            };
-            result.ReadPixels(new Rect(0,0,targetX,targetY),0,0);
-            result.Apply();
-            return result;
+                RenderTexture.active = previous;
+                RenderTexture.ReleaseTemporary(rt);
+            }
         }
         
         public override void OnImportAsset(AssetImportContext ctx)
@@ -58,6 +65,12 @@ namespace Riten.Native.Cursors.Editor.Importers
             if (data.frames.Count == 0) 
                 return;
 
+            if (_useTargetSize && (_targetSize.x <= 0 || _targetSize.y <= 0))
+            {
+                Debug.LogError("Target size must be greater than zero.");
+                return;
+            }
+
             var animatedCursor = ScriptableObject.CreateInstance<AnimatedVirtualCursor>();
             
             animatedCursor.name = Path.GetFileNameWithoutExtension(ctx.assetPath);
@@ -68,49 +81,71 @@ namespace Riten.Native.Cursors.Editor.Importers
             {
                 var frame = data.frames[i];
                 var cursor = ScriptableObject.CreateInstance<VirtualCursor>();
-                
-                int smallestWidth = 0;
-                int smallestValue = frame.cursors[0].texture.width;
-                
-                for (int j = 1; j < frame.cursors.Count; ++j)
+
+                var selectedIndex = SelectCursorIndex(frame.cursors);
+
+                if (selectedIndex < 0)
                 {
-                    if (frame.cursors[j].texture.width == _targetSize.x)
-                    {
-                        smallestWidth = j;
-                        break;
-                    }
-                    
-                    if (frame.cursors[j].texture.width < smallestValue)
-                    {
-                        smallestValue = frame.cursors[j].texture.width;
-                        smallestWidth = j;
-                    }
+                    Debug.LogError($"Frame {i} does not contain a usable cursor image.");
+                    return;
                 }
 
-                if (_useTargetSize && frame.cursors[smallestWidth].texture.width != _targetSize.x)
+                var selectedFrame = frame.cursors[selectedIndex];
+
+                if (_useTargetSize &&
+                    (selectedFrame.texture.width != _targetSize.x || selectedFrame.texture.height != _targetSize.y))
                 {
-                    cursor.texture = Resize(frame.cursors[smallestWidth].texture, _targetSize.x, _targetSize.y);
+                    cursor.texture = Resize(selectedFrame.texture, _targetSize.x, _targetSize.y);
                 }
                 else
                 {
-                    cursor.texture = frame.cursors[smallestWidth].texture;
+                    cursor.texture = selectedFrame.texture;
                 }
                 
                 cursor.name = $"cursor_{i}";
                 cursor.texture.name = $"cursor_{i}_texture";
-                cursor.isMask = frame.cursors[smallestWidth].isMask;
-                cursor.hotspot = frame.cursors[smallestWidth].hotspot;
-                cursor.backgroundColor = frame.cursors[smallestWidth].backgroundColor;
-                cursor.foregroundColor = frame.cursors[smallestWidth].foregroundColor;
+                cursor.isMask = selectedFrame.isMask;
+                cursor.hotspot = selectedFrame.hotspot;
+                cursor.backgroundColor = selectedFrame.backgroundColor;
+                cursor.foregroundColor = selectedFrame.foregroundColor;
                 
                 ctx.AddObjectToAsset($"cursor_{i}_texture", cursor.texture, cursor.texture);
                 ctx.AddObjectToAsset($"cursor_{i}", cursor, cursor.texture);
                 animatedCursor.frames[i] = cursor;
             }
             
-            animatedCursor.fps = Mathf.RoundToInt(data.fps * _animSpeedMultiplier);
+            animatedCursor.fps = Mathf.Max(1, Mathf.RoundToInt(data.fps * _animSpeedMultiplier));
             ctx.AddObjectToAsset("animated_cursor", animatedCursor, animatedCursor.frames[0].texture);
             ctx.SetMainObject(animatedCursor);
+        }
+
+        private int SelectCursorIndex(IReadOnlyList<CURSOR_RESULT> cursors)
+        {
+            if (cursors == null || cursors.Count == 0)
+                return -1;
+
+            var bestIndex = -1;
+            var bestScore = int.MaxValue;
+
+            for (var i = 0; i < cursors.Count; ++i)
+            {
+                var texture = cursors[i].texture;
+
+                if (!texture)
+                    continue;
+
+                var score = _useTargetSize
+                    ? Math.Abs(texture.width - _targetSize.x) + Math.Abs(texture.height - _targetSize.y)
+                    : texture.width * texture.height;
+
+                if (score >= bestScore)
+                    continue;
+
+                bestScore = score;
+                bestIndex = i;
+            }
+
+            return bestIndex;
         }
         
         private static bool LoadCursorFromFile(string path, out ANIM_CURSOR result)

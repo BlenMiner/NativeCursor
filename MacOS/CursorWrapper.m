@@ -16,7 +16,9 @@ static void NativeCursorSet(id self, SEL _cmd) {
         return;
     }
 
-    originalCursorSet(self, _cmd);
+    if (originalCursorSet != NULL) {
+        originalCursorSet(self, _cmd);
+    }
 }
 
 static void InstallCursorOverride() {
@@ -25,6 +27,10 @@ static void InstallCursorOverride() {
     }
 
     Method setMethod = class_getInstanceMethod([NSCursor class], @selector(set));
+    if (setMethod == NULL) {
+        return;
+    }
+
     originalCursorSet = (CursorSetImplementation)method_setImplementation(setMethod, (IMP)NativeCursorSet);
 }
 

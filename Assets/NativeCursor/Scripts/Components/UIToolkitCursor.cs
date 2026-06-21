@@ -29,12 +29,14 @@ namespace Riten.Native.Cursors.UI
             NTCursors cursor,
             UIToolkitCursorTrigger trigger = UIToolkitCursorTrigger.Hover,
             int priority = -2,
-            int secondaryPriority = 0)
+            int secondaryPriority = 0,
+            float dragThreshold = 4f)
         {
             _cursor = cursor;
             _trigger = trigger;
             _priority = priority;
             _secondaryPriority = secondaryPriority;
+            _dragThreshold = Mathf.Max(0f, dragThreshold);
         }
 
         public NTCursors Cursor
@@ -48,7 +50,7 @@ namespace Riten.Native.Cursors.UI
                 _cursor = value;
 
                 if (_pushedId != 0)
-                    CursorStack.Replace(_pushedId, _cursor);
+                    CursorStack.Update(_pushedId, _cursor, _priority, _secondaryPriority);
             }
         }
 
@@ -76,7 +78,7 @@ namespace Riten.Native.Cursors.UI
                     return;
 
                 _priority = value;
-                RePushActiveCursor();
+                UpdateActiveCursor();
             }
         }
 
@@ -89,7 +91,7 @@ namespace Riten.Native.Cursors.UI
                     return;
 
                 _secondaryPriority = value;
-                RePushActiveCursor();
+                UpdateActiveCursor();
             }
         }
 
@@ -215,13 +217,13 @@ namespace Riten.Native.Cursors.UI
             _pushedId = 0;
         }
 
-        private void RePushActiveCursor()
+        private void UpdateActiveCursor()
         {
             if (_pushedId == 0)
                 return;
 
-            CursorStack.Pop(_pushedId);
-            _pushedId = CursorStack.Push(_cursor, _priority, _secondaryPriority);
+            if (!CursorStack.Update(_pushedId, _cursor, _priority, _secondaryPriority))
+                _pushedId = CursorStack.Push(_cursor, _priority, _secondaryPriority);
         }
 
         private static Vector2 GetPointerPosition(IPointerEvent evt)
@@ -238,12 +240,13 @@ namespace Riten.Native.Cursors.UI
             NTCursors cursor,
             UIToolkitCursorTrigger trigger = UIToolkitCursorTrigger.Hover,
             int priority = -2,
-            int secondaryPriority = 0)
+            int secondaryPriority = 0,
+            float dragThreshold = 4f)
         {
             if (element == null)
                 throw new ArgumentNullException(nameof(element));
 
-            var manipulator = new CursorManipulator(cursor, trigger, priority, secondaryPriority);
+            var manipulator = new CursorManipulator(cursor, trigger, priority, secondaryPriority, dragThreshold);
             element.AddManipulator(manipulator);
             return manipulator;
         }
@@ -335,8 +338,13 @@ namespace Riten.Native.Cursors.UI
                 if (element == null)
                     return;
 
-                var manipulator = element.AddNativeCursor(_cursor, _trigger, _priority, _secondaryPriority);
-                manipulator.DragThreshold = _dragThreshold;
+                var manipulator = element.AddNativeCursor(
+                    _cursor,
+                    _trigger,
+                    _priority,
+                    _secondaryPriority,
+                    _dragThreshold
+                );
                 manipulators.Add(manipulator);
             }
         }

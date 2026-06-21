@@ -59,6 +59,9 @@ namespace Riten.Native.Cursors
         {
             if (cursorPack == null)
             {
+                if (_vcs)
+                    _vcs.UpdatePack(null, null);
+
                 SetService(_defaultService);
                 return;
             }

@@ -8,13 +8,13 @@
 
 
 
-        <link rel="canonical" href="https://gameobject.xyz/nativecursor/nativeCursorAPI/">
+        <link rel="canonical" href="https://gameobject.xyz/nativecursor/platformBehavior/">
 
 
-        <link rel="prev" href="../platformBehavior/">
+        <link rel="prev" href="..">
 
 
-        <link rel="next" href="../cursorStackAPI/">
+        <link rel="next" href="../nativeCursorAPI/">
 
 
 
@@ -25,7 +25,7 @@
 
 
 
-        <title>Native Cursor API - Native Cursor</title>
+        <title>Platform Behavior - Native Cursor</title>
 
 
 
@@ -66,7 +66,7 @@
     <div data-md-component="skip">
 
 
-        <a href="#nativecursor-api" class="md-skip">
+        <a href="#platform-behavior" class="md-skip">
           Skip to content
         </a>
 
@@ -102,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
 
-              Native Cursor API
+              Platform Behavior
 
           </span>
         </div>
@@ -184,33 +184,6 @@
 
 
 
-    <li class="md-nav__item">
-      <a href="../platformBehavior/" class="md-nav__link">
-
-
-
-  <span class="md-ellipsis">
-
-
-    Platform Behavior
-
-
-
-  </span>
-
-
-
-      </a>
-    </li>
-
-
-
-
-
-
-
-
-
 
 
     <li class="md-nav__item md-nav__item--active">
@@ -228,7 +201,7 @@
   <span class="md-ellipsis">
 
 
-    Native Cursor API
+    Platform Behavior
 
 
 
@@ -246,7 +219,7 @@
   <span class="md-ellipsis">
 
 
-    Native Cursor API
+    Platform Behavior
 
 
 
@@ -272,10 +245,43 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
 
         <li class="md-nav__item">
-  <a href="#cursor-types" class="md-nav__link">
+  <a href="#supported-cursors" class="md-nav__link">
     <span class="md-ellipsis">
 
-        Cursor Types
+        Supported cursors
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#player-hardening" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Player hardening
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#editor-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Editor behavior
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#build-workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Build workflows
 
     </span>
   </a>
@@ -286,6 +292,33 @@
 
 </nav>
 
+    </li>
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../nativeCursorAPI/" class="md-nav__link">
+
+
+
+  <span class="md-ellipsis">
+
+
+    Native Cursor API
+
+
+
+  </span>
+
+
+
+      </a>
     </li>
 
 
@@ -371,10 +404,43 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
 
         <li class="md-nav__item">
-  <a href="#cursor-types" class="md-nav__link">
+  <a href="#supported-cursors" class="md-nav__link">
     <span class="md-ellipsis">
 
-        Cursor Types
+        Supported cursors
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#player-hardening" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Player hardening
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#editor-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Editor behavior
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#build-workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Build workflows
 
     </span>
   </a>
@@ -398,55 +464,137 @@
 
 
 
-<h1 id="nativecursor-api">NativeCursor API</h1>
-<p>This is the native cursor API. It allows you to change the cursor to any of the available cursors.
-We recommend you use the <a href="../cursorStackAPI/"><code>CursorStack</code></a> API instead for most use cases, it's more flexible, easier and serves as a wrapper for this raw API.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">namespace</span><span class="w"> </span><span class="nn">Riten.Native.Cursors</span><span class="p">;</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">public</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">NativeCursor</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">{</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="c1">/// &lt;summary&gt;</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="c1">/// Changes the OS&#39;s cursor to the specified cursor.</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="c1">/// Implementation varies based on environment.</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="c1">/// &lt;/summary&gt;</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">SetCursor</span><span class="p">(</span><span class="n">NTCursors</span><span class="w"> </span><span class="n">cursor</span><span class="p">);</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="c1">/// &lt;summary&gt;</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="c1">/// Resets cursor to default state.</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">    </span><span class="c1">/// Certain platforms may include extra cleanup.</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="c1">/// Prefer this over SetCursor(NTCursors.Arrow);</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="c1">/// &lt;/summary&gt;</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">ResetCursor</span><span class="p">();</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">}</span>
-</code></pre></div>
-<h2 id="cursor-types">Cursor Types</h2>
-<blockquote>
-<p>⚠️ Editor doesn't reflect the actual cursor, it should be considered as a placeholder for testing purposes.
-It's best to test in a build.</p>
-<p>Some platforms use the closest available native cursor when the OS does not expose an exact visual match.</p>
-</blockquote>
-<p>See <a href="../platformBehavior/">Platform Behavior</a> for the exact native mappings and the build-only cursor hardening behavior.</p>
-<p>When a virtual cursor pack is active, <code>Default</code> and <code>Arrow</code> both use the pack's default cursor entry. Use <code>NativeCursor.ClearCursorPack()</code> to return to the platform-native service.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">namespace</span><span class="w"> </span><span class="nn">Riten.Native.Cursors</span><span class="p">;</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">public</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="n">NTCursors</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">{</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="n">Default</span><span class="p">,</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="n">Arrow</span><span class="p">,</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="n">IBeam</span><span class="p">,</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="n">Crosshair</span><span class="p">,</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="n">Link</span><span class="p">,</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="n">Busy</span><span class="p">,</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="n">Invalid</span><span class="p">,</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="n">ResizeVertical</span><span class="p">,</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="n">ResizeHorizontal</span><span class="p">,</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="n">ResizeDiagonalLeft</span><span class="p">,</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span><span class="n">ResizeDiagonalRight</span><span class="p">,</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="n">ResizeAll</span><span class="p">,</span>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">    </span><span class="n">OpenHand</span><span class="p">,</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">    </span><span class="n">ClosedHand</span>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="p">}</span>
-</code></pre></div>
+<h1 id="platform-behavior">Platform Behavior</h1>
+<p>Native Cursor uses the operating system cursor in player builds. It does not fall back to a software cursor unless you explicitly switch to a virtual cursor pack.</p>
+<h2 id="supported-cursors">Supported cursors</h2>
+<p>Every value in <code>NTCursors</code> has a native mapping on WebGL, Windows, MacOS, and Linux:</p>
+<table>
+<thead>
+<tr>
+<th>Cursor</th>
+<th>Windows</th>
+<th>MacOS</th>
+<th>Linux</th>
+<th>WebGL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Default</code></td>
+<td>Arrow</td>
+<td>Arrow</td>
+<td>Arrow</td>
+<td><code>default</code></td>
+</tr>
+<tr>
+<td><code>Arrow</code></td>
+<td>Arrow</td>
+<td>Arrow</td>
+<td>Arrow</td>
+<td><code>default</code></td>
+</tr>
+<tr>
+<td><code>IBeam</code></td>
+<td>I-beam</td>
+<td>I-beam</td>
+<td>XTerm</td>
+<td><code>text</code></td>
+</tr>
+<tr>
+<td><code>Crosshair</code></td>
+<td>Crosshair</td>
+<td>Crosshair</td>
+<td>Crosshair</td>
+<td><code>crosshair</code></td>
+</tr>
+<tr>
+<td><code>Link</code></td>
+<td>Hand</td>
+<td>Pointing hand</td>
+<td>Hand</td>
+<td><code>pointer</code></td>
+</tr>
+<tr>
+<td><code>Busy</code></td>
+<td>Wait</td>
+<td>Busy cursor when available, otherwise Arrow</td>
+<td>Watch</td>
+<td><code>wait</code></td>
+</tr>
+<tr>
+<td><code>Invalid</code></td>
+<td>No</td>
+<td>Operation not allowed</td>
+<td>X cursor</td>
+<td><code>not-allowed</code></td>
+</tr>
+<tr>
+<td><code>ResizeVertical</code></td>
+<td>North/south resize</td>
+<td>Up/down resize</td>
+<td>Vertical double arrow</td>
+<td><code>ns-resize</code></td>
+</tr>
+<tr>
+<td><code>ResizeHorizontal</code></td>
+<td>East/west resize</td>
+<td>Left/right resize</td>
+<td>Horizontal double arrow</td>
+<td><code>ew-resize</code></td>
+</tr>
+<tr>
+<td><code>ResizeDiagonalLeft</code></td>
+<td>Northwest/southeast resize</td>
+<td>Up resize</td>
+<td>Bottom-left corner</td>
+<td><code>nwse-resize</code></td>
+</tr>
+<tr>
+<td><code>ResizeDiagonalRight</code></td>
+<td>Northeast/southwest resize</td>
+<td>Down resize</td>
+<td>Bottom-right corner</td>
+<td><code>nesw-resize</code></td>
+</tr>
+<tr>
+<td><code>ResizeAll</code></td>
+<td>Move</td>
+<td>Arrow</td>
+<td>Move</td>
+<td><code>move</code></td>
+</tr>
+<tr>
+<td><code>OpenHand</code></td>
+<td>Hand</td>
+<td>Open hand</td>
+<td>Hand</td>
+<td><code>grab</code></td>
+</tr>
+<tr>
+<td><code>ClosedHand</code></td>
+<td>Hand</td>
+<td>Closed hand</td>
+<td>Hand</td>
+<td><code>grabbing</code></td>
+</tr>
+</tbody>
+</table>
+<p>Some operating systems do not expose a perfect visual match for every cursor shape. In those cases the package uses the closest native system cursor and keeps the hardware/OS cursor path active.</p>
+<h2 id="player-hardening">Player hardening</h2>
+<p>Unity and the OS can replace the active cursor after your code sets it. Native Cursor protects against that in player builds:</p>
+<ul>
+<li>Windows subclasses the Unity window and handles <code>WM_SETCURSOR</code>. It also checks the active OS cursor while the app is focused and the pointer is inside the client area, then reapplies only if another cursor replaced it.</li>
+<li>MacOS keeps the current <code>NSCursor</code> authoritative and redirects later AppKit or Unity cursor changes back to the active native cursor.</li>
+<li>Linux uses XFixes cursor notifications when available. If XFixes is not available, it falls back to a low-frequency reapply while focused.</li>
+<li>WebGL writes the matching CSS cursor value to the Unity canvas.</li>
+</ul>
+<p>This keeps the visible cursor representative of what the game uses in builds, without relying on the virtual cursor fallback.</p>
+<h2 id="editor-behavior">Editor behavior</h2>
+<p>The native services are build-only. The Unity editor can still show editor-specific cursor behavior while inspecting UI, dragging windows, recompiling, or showing loading states. Treat editor cursor display as a convenience preview and validate final cursor behavior in a player build.</p>
+<h2 id="build-workflows">Build workflows</h2>
+<p>The MacOS service depends on <code>Assets/NativeCursor/Scripts/Native/MacOS/Plugins/CursorWrapper.dylib</code>, built from <code>MacOS/CursorWrapper.m</code>.</p>
+<p>The GitHub workflow at <code>.github/workflows/build-native-cursor-plugin.yml</code> runs on changes to the wrapper source, the MacOS cursor service, or the workflow file. It compiles the universal <code>x86_64</code>/<code>arm64</code> dylib and uploads it as a workflow artifact. On pushes, it also commits the rebuilt binary back to the branch when the output changed. On pull requests, it compiles and uploads the artifact as validation but does not push changes.</p>
+<p>The docs workflow at <code>.github/workflows/build-docs.yml</code> runs on documentation changes, builds the MkDocs site, and uploads the generated <code>native-cursor-docs/site</code> folder as a workflow artifact.</p>
 
 
 

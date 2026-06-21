@@ -8,39 +8,40 @@ namespace Riten.Native.Cursors.UI
         [SerializeField] private NTCursors _cursor;
         [Tooltip("Higher priority means this cursor will override other cursors with lower priority")]
         [SerializeField] private int _priority = -1;
-        
+
         private bool _isDragging;
-        
+
         private int _pushedId;
 
-        private int _transformDepth;
-        
         public NTCursors Cursor
         {
             get => _cursor;
             set
             {
                 if (_cursor == value) return;
-                
+
                 _cursor = value;
 
                 if (_isDragging)
-                {
-                    CursorStack.Replace(_pushedId, _cursor);
-                }
+                    CursorStack.Update(_pushedId, _cursor, _priority, SecondaryPriority);
             }
         }
-        
-        
-        private void Awake()
+
+        public int Priority
         {
-            _transformDepth = transform.CalculateTransformDepth();
+            get => _priority;
+            set
+            {
+                if (_priority == value) return;
+
+                _priority = value;
+
+                if (_isDragging)
+                    CursorStack.Update(_pushedId, _cursor, _priority, SecondaryPriority);
+            }
         }
 
-        private void OnTransformParentChanged()
-        {
-            _transformDepth = transform.CalculateTransformDepth();
-        }
+        private int SecondaryPriority => transform.GetSecondaryPriority(transform.CalculateTransformDepth());
 
         private void OnDisable()
         {
@@ -49,8 +50,11 @@ namespace Riten.Native.Cursors.UI
 
         public void OnBeginDrag(PointerEventData eventData)
         {
+            if (_isDragging)
+                return;
+
             _isDragging = true;
-            _pushedId = CursorStack.Push(_cursor, _priority, transform.GetSecondaryPriority(_transformDepth));
+            _pushedId = CursorStack.Push(_cursor, _priority, SecondaryPriority);
         }
 
         public void OnDrag(PointerEventData eventData) { }

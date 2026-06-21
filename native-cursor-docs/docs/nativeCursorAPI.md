@@ -32,6 +32,8 @@ public static class NativeCursor
 
 See [Platform Behavior](platformBehavior.md) for the exact native mappings and the build-only cursor hardening behavior.
 
+When a virtual cursor pack is active, `Default` and `Arrow` both use the pack's default cursor entry. Use `NativeCursor.ClearCursorPack()` to return to the platform-native service.
+
 ```c#
 namespace Riten.Native.Cursors;
 

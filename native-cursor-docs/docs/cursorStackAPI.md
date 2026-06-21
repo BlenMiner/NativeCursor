@@ -11,6 +11,12 @@ namespace Riten.Native.Cursors;
 
 public static class CursorStack
 {
+    public static event Action Changed;
+
+    public static int Count { get; }
+    public static bool IsEmpty { get; }
+    public static bool IsRenderingPaused { get; }
+
     /// <summary>
     /// Pushes a cursor to the stack.
     /// Higher priority means this cursor will override other cursors with lower priority.
@@ -29,7 +35,13 @@ public static class CursorStack
     /// Use this if you want to change a cursor that is already in the stack.
     /// For example, if you want to change the cursor during a drag operation to indicate that the drag is invalid.
     /// </summary>
-    public static bool Replace(int id, NTCursors cursor)
+    public static bool Replace(int id, NTCursors cursor);
+
+    /// <summary>
+    /// Updates a cursor stack item in place.
+    /// Pass null for priority values that should stay unchanged.
+    /// </summary>
+    public static bool Update(int id, NTCursors cursor, int? priority = null, int? secondaryPriority = null);
 
     /// <summary>
     /// Pops the cursor with the given id.
@@ -52,16 +64,24 @@ public static class CursorStack
     public static void Clear();
 
     /// <summary>
-    /// Returns true if the stack is empty.
-    /// </summary>
-    public static bool IsEmpty { get; }
-
-    /// <summary>
     /// Returns the cursor at the top of the stack.
     /// It will be the cursor with the highest priority.
     /// </summary>
     /// <returns>Default if the stack is empty. Otherwise, the cursor with highest priority.</returns>
     public static CursorStackItem Peek();
+
+    /// <summary>
+    /// Gets the cursor at the top of the stack.
+    /// </summary>
+    /// <returns>True if the stack has an active item, false otherwise.</returns>
+    public static bool TryPeek(out CursorStackItem item);
+
+    /// <summary>
+    /// Returns true if an item with the given id is still in the stack.
+    /// </summary>
+    public static bool Contains(int id);
+
+    public static void CopyItemsTo(List<CursorStackItem> items);
 
     /// <summary>
     /// A debug GUI to see the current stack.
@@ -80,10 +100,7 @@ public static class CursorStack
     /// <summary>
     /// Call this if you used NativeCursor.SetCursor() directly and want to reapply the stack's cursor.
     /// </summary>
-    public static void ReApply()
-    {
-        OnStackChanged(true);
-    }
+    public static void ReApply();
 }
 ```
 
@@ -106,6 +123,11 @@ using (CursorStack.PushScoped(NTCursors.Busy))
 {
     // The Busy cursor is active until the scope exits.
 }
+
+// Update a pushed cursor without changing its id.
+var dragCursorId = CursorStack.Push(NTCursors.ClosedHand, priority: 10);
+CursorStack.Update(dragCursorId, NTCursors.Invalid, priority: 20);
+CursorStack.Pop(dragCursorId);
 
 ```
 

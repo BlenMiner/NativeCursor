@@ -25,7 +25,7 @@ namespace Riten.Native.Cursors
         {
             var cursor = ntCursor switch
             {
-                NTCursors.Default => null,
+                NTCursors.Default => @default,
                 NTCursors.Arrow => @default,
                 NTCursors.Link => pointer,
                 NTCursors.IBeam => ibeam,

@@ -16,10 +16,24 @@ namespace Riten.Native.Cursors.UI
             {
                 if (_cursor == value) return;
 
-                if (_isPressing)
-                    CursorStack.Replace(_pushedId, value);
-                
                 _cursor = value;
+
+                if (_isPressing)
+                    CursorStack.Update(_pushedId, _cursor, _priority, SecondaryPriority);
+            }
+        }
+
+        public int Priority
+        {
+            get => _priority;
+            set
+            {
+                if (_priority == value) return;
+
+                _priority = value;
+
+                if (_isPressing)
+                    CursorStack.Update(_pushedId, _cursor, _priority, SecondaryPriority);
             }
         }
 
@@ -27,17 +41,7 @@ namespace Riten.Native.Cursors.UI
         
         private int _pushedId;
 
-        private int _transformDepth;
-        
-        private void Awake()
-        {
-            _transformDepth = transform.CalculateTransformDepth();
-        }
-
-        private void OnTransformParentChanged()
-        {
-            _transformDepth = transform.CalculateTransformDepth();
-        }
+        private int SecondaryPriority => transform.GetSecondaryPriority(transform.CalculateTransformDepth());
 
         private void OnDisable()
         {
@@ -46,8 +50,11 @@ namespace Riten.Native.Cursors.UI
 
         public void OnPointerDown(PointerEventData eventData)
         {
+            if (_isPressing)
+                return;
+
             _isPressing = true;
-            _pushedId = CursorStack.Push(_cursor, _priority, transform.GetSecondaryPriority(_transformDepth));
+            _pushedId = CursorStack.Push(_cursor, _priority, SecondaryPriority);
         }
 
         public void OnPointerUp(PointerEventData eventData)

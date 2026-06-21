@@ -77,6 +77,11 @@ namespace Riten.Native.Cursors
             else NativeCursor.SetCursor(Peek().cursor);
         }
 
+        static bool HasActiveCursorChanged(CursorStackItem previous, CursorStackItem current)
+        {
+            return previous.id != current.id || previous.cursor != current.cursor;
+        }
+
         /// <summary>
         /// A debug GUI to see the current stack.
         /// Uses GUILayout, so it's not very customizable.
@@ -105,6 +110,9 @@ namespace Riten.Native.Cursors
         /// </summary>
         public static void PauseRendering(bool isPaused)
         {
+            if (_paused == isPaused)
+                return;
+
             _paused = isPaused;
             OnStackChanged();
             NotifyChanged();
@@ -126,6 +134,7 @@ namespace Riten.Native.Cursors
         /// <returns>The id of the pushed cursor. Use this to remove the cursor later.</returns>
         public static int Push(NTCursors cursor, int priority = 0, int secondaryPriority = 0)
         {
+            var previousActive = Peek();
             var uid = _nextUid++;
             
             _stack.Add(new CursorStackItem
@@ -135,8 +144,8 @@ namespace Riten.Native.Cursors
                 priority = priority,
                 secondaryPriority = secondaryPriority
             });
-            
-            if (Peek().id == uid)
+
+            if (HasActiveCursorChanged(previousActive, Peek()))
                 OnStackChanged();
 
             NotifyChanged();
@@ -176,6 +185,8 @@ namespace Riten.Native.Cursors
         public static bool Pop(int id)
         {
             if (id == 0) return false;
+
+            var previousActive = Peek();
             
             bool removed = false;
             
@@ -191,7 +202,9 @@ namespace Riten.Native.Cursors
 
             if (removed)
             {
-                OnStackChanged();
+                if (HasActiveCursorChanged(previousActive, Peek()))
+                    OnStackChanged();
+
                 NotifyChanged();
                 return true;
             }
@@ -207,9 +220,14 @@ namespace Riten.Native.Cursors
         {
             if (_stack.Count == 0)
                 return;
+
+            var previousActive = Peek();
             
             _stack.Clear();
-            OnStackChanged();
+
+            if (HasActiveCursorChanged(previousActive, Peek()))
+                OnStackChanged();
+
             NotifyChanged();
         }
         
@@ -225,9 +243,21 @@ namespace Riten.Native.Cursors
         /// <returns>Default if the stack is empty. Otherwise, the cursor with highest priority.</returns>
         public static CursorStackItem Peek()
         {
+            TryPeek(out var item);
+            return item;
+        }
+
+        /// <summary>
+        /// Gets the cursor at the top of the stack.
+        /// </summary>
+        /// <returns>True if the stack has an active item, false otherwise.</returns>
+        public static bool TryPeek(out CursorStackItem item)
+        {
+            item = default;
+
             if (_stack.Count == 0)
-                return default;
-            
+                return false;
+
             int highestPriority = _stack[_stack.Count - 1].priority;
             int highestSecondaryPriority = _stack[_stack.Count - 1].secondaryPriority;
             int idx = _stack.Count - 1;
@@ -252,7 +282,25 @@ namespace Riten.Native.Cursors
                 }
             }
             
-            return _stack[idx];
+            item = _stack[idx];
+            return true;
+        }
+
+        /// <summary>
+        /// Returns true if an item with the given id is still in the stack.
+        /// </summary>
+        public static bool Contains(int id)
+        {
+            if (id == 0)
+                return false;
+
+            for (int i = _stack.Count - 1; i >= 0; --i)
+            {
+                if (_stack[i].id == id)
+                    return true;
+            }
+
+            return false;
         }
         
         /// <summary>
@@ -261,24 +309,44 @@ namespace Riten.Native.Cursors
         /// </summary>
         public static bool Replace(int id, NTCursors cursor)
         {
-            for(int i = _stack.Count - 1; i >= 0; i--)
+            return Update(id, cursor);
+        }
+
+        /// <summary>
+        /// Updates a cursor stack item in place.
+        /// Pass null for priority values that should stay unchanged.
+        /// </summary>
+        public static bool Update(int id, NTCursors cursor, int? priority = null, int? secondaryPriority = null)
+        {
+            if (id == 0)
+                return false;
+
+            var previousActive = Peek();
+
+            for (int i = _stack.Count - 1; i >= 0; i--)
             {
                 if (_stack[i].id == id)
                 {
-                    var oldPriority = _stack[i].priority;
-                    var oldSecondaryPriority = _stack[i].secondaryPriority;
+                    var item = _stack[i];
+                    var newPriority = priority ?? item.priority;
+                    var newSecondaryPriority = secondaryPriority ?? item.secondaryPriority;
+
+                    if (item.cursor == cursor &&
+                        item.priority == newPriority &&
+                        item.secondaryPriority == newSecondaryPriority)
+                    {
+                        return true;
+                    }
                     
                     _stack[i] = new CursorStackItem
                     {
                         cursor = cursor,
                         id = id,
-                        priority = oldPriority,
-                        secondaryPriority = oldSecondaryPriority
+                        priority = newPriority,
+                        secondaryPriority = newSecondaryPriority
                     };
                     
-                    var peek = Peek();
-                    
-                    if (peek.id == id)
+                    if (HasActiveCursorChanged(previousActive, Peek()))
                         OnStackChanged();
 
                     NotifyChanged();

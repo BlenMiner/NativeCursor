@@ -24,7 +24,7 @@ namespace Riten.Native.Cursors.Virtual
 
         private int _lastFrame;
         private int _frame;
-        private float _fps;
+        private float _secondsPerFrame;
 
         private void Awake()
         {
@@ -39,6 +39,17 @@ namespace Riten.Native.Cursors.Virtual
         private void OnDisable()
         {
             Camera.onPostRender -= OnPostRenderCb;
+        }
+
+        private void OnDestroy()
+        {
+            DestroyGeneratedTexture(ref _screenTexture);
+            DestroyGeneratedTexture(ref _liveMaskTexture);
+            DestroyGeneratedTexture(ref _stableMaskTexture);
+
+            _stableMaskPixels = null;
+            _liveMaskSourcePixels = null;
+            _liveMaskPixels = null;
         }
 
         private void OnPostRenderCb(Camera cmr)
@@ -87,7 +98,7 @@ namespace Riten.Native.Cursors.Virtual
             
             _frame = 0;
             _lastFrame = -1;
-            _fps = Mathf.Abs(_activeCursor.framesPerSecond == 0 ? 0 : 1f / _activeCursor.framesPerSecond);
+            _secondsPerFrame = _activeCursor.framesPerSecond <= 0 ? 0f : 1f / _activeCursor.framesPerSecond;
 
             DoCursorUpdate();
             return foundRequestedCursor;
@@ -106,7 +117,7 @@ namespace Riten.Native.Cursors.Virtual
             if (!_activeCursor || !_activeCursor.isAnimated || frames == null || frames.Length == 0)
                 return;
             
-            _frame = Mathf.FloorToInt(_fps == 0f ? 0 : Time.time / _fps) % frames.Length;
+            _frame = Mathf.FloorToInt(_secondsPerFrame == 0f ? 0 : Time.time / _secondsPerFrame) % frames.Length;
 
             if (_lastFrame != _frame)
             {
@@ -186,6 +197,14 @@ namespace Riten.Native.Cursors.Virtual
 
         private bool CaptureScreen()
         {
+            if (_liveMaskTexture.width > Screen.width ||
+                _liveMaskTexture.height > Screen.height ||
+                Screen.width <= 0 ||
+                Screen.height <= 0)
+            {
+                return false;
+            }
+
             _screenTexture ??= new Texture2D(_liveMaskTexture.width, _liveMaskTexture.height, TextureFormat.RGBA32, false);
             
             if (_screenTexture.width != _liveMaskTexture.width || _screenTexture.height != _liveMaskTexture.height)
@@ -214,8 +233,16 @@ namespace Riten.Native.Cursors.Virtual
             if (region.y < 0)
                 region.y = 0;
             
-            _screenTexture.ReadPixels(region, 0, 0, false);
-            _screenTexture.Apply();
+            try
+            {
+                _screenTexture.ReadPixels(region, 0, 0, false);
+                _screenTexture.Apply();
+            }
+            catch (UnityException)
+            {
+                return false;
+            }
+
             return true;
         }
 
@@ -442,6 +469,19 @@ namespace Riten.Native.Cursors.Virtual
         {
             _activeCursor = null;
             Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+        }
+
+        private static void DestroyGeneratedTexture(ref Texture2D texture)
+        {
+            if (!texture)
+                return;
+
+            if (Application.isPlaying)
+                Destroy(texture);
+            else
+                DestroyImmediate(texture);
+
+            texture = null;
         }
     }
 }

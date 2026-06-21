@@ -13,32 +13,14 @@ namespace Riten.Native.Cursors.Virtual
 
         private void OnEnable()
         {
-            if (_cursorPack == null)
-                return;
-            
-            ApplyMaskSettings();
-            NativeCursor.SetCursorPack(_cursorPack, _camera);
-            NativeCursor.SetCursor(NTCursors.Arrow);
-            
-            _lastActivated = _cursorPack;
+            ApplyCursorPack();
         }
 
         private void OnValidate()
         {
             if (!Application.isPlaying || !enabled) return;
 
-            ApplyMaskSettings();
-            
-            if (_lastActivated != null && _lastActivated != _cursorPack)
-            {
-                NativeCursor.SetCursorPack(_cursorPack, _camera);
-                NativeCursor.SetCursor(NTCursors.Arrow);
-                _lastActivated = _cursorPack;
-            }
-            else if (_lastActivated != null)
-            {
-                NativeCursor.SetCursor(NTCursors.Arrow);
-            }
+            ApplyCursorPack();
         }
 
         private void OnDisable()
@@ -54,6 +36,34 @@ namespace Riten.Native.Cursors.Virtual
         {
             VirtualCursorService.maskCursorMode = _maskCursorMode;
             VirtualCursorService.liveMaskInversionUpdatesPerSecond = Mathf.Max(1, _liveMaskInversionUpdatesPerSecond);
+        }
+
+        private void ApplyCursorPack()
+        {
+            ApplyMaskSettings();
+
+            if (!_cursorPack)
+            {
+                if (_lastActivated)
+                {
+                    NativeCursor.ClearCursorPack();
+                    _lastActivated = null;
+                }
+
+                return;
+            }
+
+            if (_lastActivated != _cursorPack)
+            {
+                NativeCursor.SetCursorPack(_cursorPack, _camera);
+                _lastActivated = _cursorPack;
+            }
+            else
+            {
+                NativeCursor.SetCursorPackCamera(_camera);
+            }
+
+            NativeCursor.SetCursor(NTCursors.Arrow);
         }
     }
 }

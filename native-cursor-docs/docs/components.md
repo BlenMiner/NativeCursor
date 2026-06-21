@@ -24,6 +24,8 @@ For UI Toolkit, use `CursorManipulator` from code:
 ```c#
 button.AddNativeCursor(NTCursors.Link);
 resizeHandle.AddNativeCursor(NTCursors.ResizeHorizontal, UIToolkitCursorTrigger.Drag);
+resizeHandle.AddNativeCursor(NTCursors.ResizeHorizontal, UIToolkitCursorTrigger.Drag, dragThreshold: 8f);
 ```
 
 You can also add `UIToolkitCursorBinder` to a `UIDocument` GameObject and bind cursor entries by element name or USS class.
+Bindings support hover, press, and drag triggers. Drag bindings use the threshold value before pushing their cursor.
