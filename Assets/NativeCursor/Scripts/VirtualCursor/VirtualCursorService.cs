@@ -11,11 +11,18 @@ namespace Riten.Native.Cursors.Virtual
         LiveInverted
     }
 
-    public class VirtualCursorService : MonoBehaviour, ICursorService
+    public class VirtualCursorService : MonoBehaviour, ICursorService, ICursorServiceLifecycle
     {
         public static MaskCursorMode maskCursorMode = MaskCursorMode.LiveInverted;
         public static int liveMaskInversionUpdatesPerSecond = 30;
         private const byte InvertedMaskAlpha = 1;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticState()
+        {
+            maskCursorMode = MaskCursorMode.LiveInverted;
+            liveMaskInversionUpdatesPerSecond = 30;
+        }
 
         private CursorPack _cursorPack;
         
@@ -25,6 +32,8 @@ namespace Riten.Native.Cursors.Virtual
         private int _lastFrame;
         private int _frame;
         private float _secondsPerFrame;
+        private bool _isShuttingDown;
+        private bool _serviceActive;
 
         private void Awake()
         {
@@ -33,16 +42,19 @@ namespace Riten.Native.Cursors.Virtual
 
         private void OnEnable()
         {
+            _isShuttingDown = false;
             Camera.onPostRender += OnPostRenderCb;
         }
         
         private void OnDisable()
         {
+            _isShuttingDown = true;
             Camera.onPostRender -= OnPostRenderCb;
         }
 
         private void OnDestroy()
         {
+            _isShuttingDown = true;
             DestroyGeneratedTexture(ref _screenTexture);
             DestroyGeneratedTexture(ref _liveMaskTexture);
             DestroyGeneratedTexture(ref _stableMaskTexture);
@@ -54,6 +66,7 @@ namespace Riten.Native.Cursors.Virtual
 
         private void OnPostRenderCb(Camera cmr)
         {
+            if (_isShuttingDown || !_serviceActive) return;
             if (!Application.isPlaying) return;
             
             if (_camera && cmr != _camera) return;
@@ -112,6 +125,9 @@ namespace Riten.Native.Cursors.Virtual
 
         void Update()
         {
+            if (!_serviceActive)
+                return;
+
             var frames = _activeCursor ? _activeCursor.frames : null;
 
             if (!_activeCursor || !_activeCursor.isAnimated || frames == null || frames.Length == 0)
@@ -197,6 +213,9 @@ namespace Riten.Native.Cursors.Virtual
 
         private bool CaptureScreen()
         {
+            if (!_liveMaskTexture)
+                return false;
+
             if (_liveMaskTexture.width > Screen.width ||
                 _liveMaskTexture.height > Screen.height ||
                 Screen.width <= 0 ||
@@ -205,7 +224,8 @@ namespace Riten.Native.Cursors.Virtual
                 return false;
             }
 
-            _screenTexture ??= new Texture2D(_liveMaskTexture.width, _liveMaskTexture.height, TextureFormat.RGBA32, false);
+            if (!_screenTexture)
+                _screenTexture = new Texture2D(_liveMaskTexture.width, _liveMaskTexture.height, TextureFormat.RGBA32, false);
             
             if (_screenTexture.width != _liveMaskTexture.width || _screenTexture.height != _liveMaskTexture.height)
                 _screenTexture.Reinitialize(_liveMaskTexture.width, _liveMaskTexture.height, TextureFormat.RGBA32, false);
@@ -260,7 +280,6 @@ namespace Riten.Native.Cursors.Virtual
             {
                 _stableMaskTexture = new Texture2D(texture.width, texture.height, TextureFormat.RGBA32, false)
                 {
-                    alphaIsTransparency = true,
                     filterMode = FilterMode.Point,
                     wrapMode = TextureWrapMode.Clamp
                 };
@@ -331,6 +350,9 @@ namespace Riten.Native.Cursors.Virtual
 
         private void DoLiveInvertedMaskCursorUpdate()
         {
+            if (_isShuttingDown || !_serviceActive)
+                return;
+
             var updatesPerSecond = Mathf.Max(1, liveMaskInversionUpdatesPerSecond);
 
             if (Time.unscaledTime < _nextLiveMaskUpdateTime) return;
@@ -351,7 +373,6 @@ namespace Riten.Native.Cursors.Virtual
             {
                 _liveMaskTexture = new Texture2D(texture.width, texture.height, TextureFormat.RGBA32, false)
                 {
-                    alphaIsTransparency = true,
                     filterMode = FilterMode.Point,
                     wrapMode = TextureWrapMode.Clamp
                 };
@@ -372,6 +393,12 @@ namespace Riten.Native.Cursors.Virtual
                 _liveMaskPixels = new Color32[pixelCount];
 
             if (!CaptureScreen())
+            {
+                SetStableMaskCursor();
+                return;
+            }
+
+            if (!_screenTexture)
             {
                 SetStableMaskCursor();
                 return;
@@ -463,6 +490,16 @@ namespace Riten.Native.Cursors.Virtual
         public void SetCamera(Camera cmr)
         {
             _camera = cmr;
+        }
+
+        public void OnActivated()
+        {
+            _serviceActive = true;
+        }
+
+        public void OnDeactivated()
+        {
+            _serviceActive = false;
         }
 
         private void ClearUnityCursor()

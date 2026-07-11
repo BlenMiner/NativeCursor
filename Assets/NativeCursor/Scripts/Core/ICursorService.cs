@@ -24,4 +24,15 @@ namespace Riten.Native.Cursors
         
         void ResetCursor();
     }
+
+    /// <summary>
+    /// Optional lifecycle for cursor services that continuously enforce or animate a cursor.
+    /// NativeCursor invokes these callbacks whenever the active service changes.
+    /// </summary>
+    public interface ICursorServiceLifecycle
+    {
+        void OnActivated();
+
+        void OnDeactivated();
+    }
 }

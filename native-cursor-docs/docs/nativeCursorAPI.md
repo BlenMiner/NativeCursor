@@ -20,13 +20,31 @@ public static class NativeCursor
     /// Prefer this over SetCursor(NTCursors.Arrow);
     /// </summary>
     public static void ResetCursor();
+
+    /// <summary>Switches to a custom cursor service.</summary>
+    public static void SetService(ICursorService service);
+}
+```
+
+## Custom cursor services
+
+Custom services implement `ICursorService`. If a service installs a native hook, polls for cursor changes, or animates cursor frames, it should also implement `ICursorServiceLifecycle` and stop that work while inactive.
+
+When services change, `NativeCursor` resets and deactivates the old service, activates the new service, then reapplies the last requested `NTCursors` value. This prevents inactive native services from fighting a virtual pack or another custom service.
+
+```c#
+public sealed class CustomCursorService : ICursorService, ICursorServiceLifecycle
+{
+    public bool SetCursor(NTCursors cursor) { /* apply it */ return true; }
+    public void ResetCursor() { /* restore default */ }
+    public void OnActivated() { /* start enforcement or animation */ }
+    public void OnDeactivated() { /* stop enforcement or animation */ }
 }
 ```
 
 ## Cursor Types
 
-> ⚠️ Editor doesn't reflect the actual cursor, it should be considered as a placeholder for testing purposes.
-> It's best to test in a build.
+> Native platform services run only in player builds. The Unity Editor cannot safely expose a platform-native cursor hook only to a docked Game view, so treat Editor cursor behavior as a preview and validate final behavior in a build.
 
 > Some platforms use the closest available native cursor when the OS does not expose an exact visual match.
 

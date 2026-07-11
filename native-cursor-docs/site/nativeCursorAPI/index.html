@@ -272,6 +272,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
 
         <li class="md-nav__item">
+  <a href="#custom-cursor-services" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Custom cursor services
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
   <a href="#cursor-types" class="md-nav__link">
     <span class="md-ellipsis">
 
@@ -371,6 +382,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
 
         <li class="md-nav__item">
+  <a href="#custom-cursor-services" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Custom cursor services
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
   <a href="#cursor-types" class="md-nav__link">
     <span class="md-ellipsis">
 
@@ -417,12 +439,25 @@ We recommend you use the <a href="../cursorStackAPI/"><code>CursorStack</code></
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="c1">/// Prefer this over SetCursor(NTCursors.Arrow);</span>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="c1">/// &lt;/summary&gt;</span>
 <a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">ResetCursor</span><span class="p">();</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">}</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="c1">/// &lt;summary&gt;Switches to a custom cursor service.&lt;/summary&gt;</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">SetService</span><span class="p">(</span><span class="n">ICursorService</span><span class="w"> </span><span class="n">service</span><span class="p">);</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">}</span>
+</code></pre></div>
+<h2 id="custom-cursor-services">Custom cursor services</h2>
+<p>Custom services implement <code>ICursorService</code>. If a service installs a native hook, polls for cursor changes, or animates cursor frames, it should also implement <code>ICursorServiceLifecycle</code> and stop that work while inactive.</p>
+<p>When services change, <code>NativeCursor</code> resets and deactivates the old service, activates the new service, then reapplies the last requested <code>NTCursors</code> value. This prevents inactive native services from fighting a virtual pack or another custom service.</p>
+<div class="highlight"><pre><span></span><code><span class="k">public</span><span class="w"> </span><span class="k">sealed</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">CustomCursorService</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ICursorService</span><span class="p">,</span><span class="w"> </span><span class="n">ICursorServiceLifecycle</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">SetCursor</span><span class="p">(</span><span class="n">NTCursors</span><span class="w"> </span><span class="n">cursor</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* apply it */</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">ResetCursor</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* restore default */</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">OnActivated</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* start enforcement or animation */</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="k">public</span><span class="w"> </span><span class="k">void</span><span class="w"> </span><span class="nf">OnDeactivated</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* stop enforcement or animation */</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
 <h2 id="cursor-types">Cursor Types</h2>
 <blockquote>
-<p>⚠️ Editor doesn't reflect the actual cursor, it should be considered as a placeholder for testing purposes.
-It's best to test in a build.</p>
+<p>Native platform services run only in player builds. The Unity Editor cannot safely expose a platform-native cursor hook only to a docked Game view, so treat Editor cursor behavior as a preview and validate final behavior in a build.</p>
 <p>Some platforms use the closest available native cursor when the OS does not expose an exact visual match.</p>
 </blockquote>
 <p>See <a href="../platformBehavior/">Platform Behavior</a> for the exact native mappings and the build-only cursor hardening behavior.</p>

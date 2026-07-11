@@ -29,3 +29,9 @@ resizeHandle.AddNativeCursor(NTCursors.ResizeHorizontal, UIToolkitCursorTrigger.
 
 You can also add `UIToolkitCursorBinder` to a `UIDocument` GameObject and bind cursor entries by element name or USS class.
 Bindings support hover, press, and drag triggers. Drag bindings use the threshold value before pushing their cursor.
+
+## AutoSetCursorPack
+
+`AutoSetCursorPack` switches `NativeCursor` to a virtual cursor pack while it is enabled. Disable **Use Virtual Cursor Pack** when a player build should use its platform-native Windows/MacOS/Linux/WebGL cursor service instead.
+
+When multiple enabled components provide cursor packs, the most recently enabled provider is active. Disabling it restores the previous provider instead of clearing another component's pack.

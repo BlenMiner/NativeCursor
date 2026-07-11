@@ -367,6 +367,17 @@
 
 </li>
 
+        <li class="md-nav__item">
+  <a href="#autosetcursorpack" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        AutoSetCursorPack
+
+    </span>
+  </a>
+
+</li>
+
     </ul>
 
 </nav>
@@ -445,6 +456,17 @@
 
 </li>
 
+        <li class="md-nav__item">
+  <a href="#autosetcursorpack" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        AutoSetCursorPack
+
+    </span>
+  </a>
+
+</li>
+
     </ul>
 
 </nav>
@@ -481,6 +503,9 @@ If multiple components are dragged, the cursor will be the one with the highest 
 </code></pre></div>
 <p>You can also add <code>UIToolkitCursorBinder</code> to a <code>UIDocument</code> GameObject and bind cursor entries by element name or USS class.
 Bindings support hover, press, and drag triggers. Drag bindings use the threshold value before pushing their cursor.</p>
+<h2 id="autosetcursorpack">AutoSetCursorPack</h2>
+<p><code>AutoSetCursorPack</code> switches <code>NativeCursor</code> to a virtual cursor pack while it is enabled. Disable <strong>Use Virtual Cursor Pack</strong> when a player build should use its platform-native Windows/MacOS/Linux/WebGL cursor service instead.</p>
+<p>When multiple enabled components provide cursor packs, the most recently enabled provider is active. Disabling it restores the previous provider instead of clearing another component's pack.</p>
 
 
 

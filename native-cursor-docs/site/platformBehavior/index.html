@@ -583,14 +583,14 @@
 <h2 id="player-hardening">Player hardening</h2>
 <p>Unity and the OS can replace the active cursor after your code sets it. Native Cursor protects against that in player builds:</p>
 <ul>
-<li>Windows subclasses the Unity window and handles <code>WM_SETCURSOR</code>. It also checks the active OS cursor while the app is focused and the pointer is inside the client area, then reapplies only if another cursor replaced it.</li>
+<li>Windows uses the system window-subclass chain to handle <code>WM_SETCURSOR</code>, then reapplies after Unity processes client-area mouse movement. The subclass is removed when the service is disabled or destroyed.</li>
 <li>MacOS keeps the current <code>NSCursor</code> authoritative and redirects later AppKit or Unity cursor changes back to the active native cursor.</li>
-<li>Linux uses XFixes cursor notifications when available. If XFixes is not available, it falls back to a low-frequency reapply while focused.</li>
-<li>WebGL writes the matching CSS cursor value to the Unity canvas.</li>
+<li>Linux uses XFixes cursor notifications when available. If XFixes is not available, it falls back to a low-frequency reapply while focused. It never applies a cursor to the X root window during focus transitions.</li>
+<li>WebGL writes the matching CSS cursor value to Unity's active canvas, with fallbacks for custom WebGL templates.</li>
 </ul>
 <p>This keeps the visible cursor representative of what the game uses in builds, without relying on the virtual cursor fallback.</p>
 <h2 id="editor-behavior">Editor behavior</h2>
-<p>The native services are build-only. The Unity editor can still show editor-specific cursor behavior while inspecting UI, dragging windows, recompiling, or showing loading states. Treat editor cursor display as a convenience preview and validate final cursor behavior in a player build.</p>
+<p>The platform P/Invoke services are build-only. In particular, the Windows service does not subclass the Unity Editor window: a docked Game view has no independent native window, so an Editor hook would also affect Inspector, Console, and other panes. Treat Editor cursor display as a convenience preview and validate final cursor behavior in a player build.</p>
 <h2 id="build-workflows">Build workflows</h2>
 <p>The MacOS service depends on <code>Assets/NativeCursor/Scripts/Native/MacOS/Plugins/CursorWrapper.dylib</code>, built from <code>MacOS/CursorWrapper.m</code>.</p>
 <p>The GitHub workflow at <code>.github/workflows/build-native-cursor-plugin.yml</code> runs on changes to the wrapper source, the MacOS cursor service, or the workflow file. It compiles the universal <code>x86_64</code>/<code>arm64</code> dylib and uploads it as a workflow artifact. On pushes, it also commits the rebuilt binary back to the branch when the output changed. On pull requests, it compiles and uploads the artifact as validation but does not push changes.</p>

@@ -1,0 +1,21 @@
+{
+    "name": "NativeCursor.Tests",
+    "rootNamespace": "Riten.Native.Cursors.Tests",
+    "references": [
+        "GUID:59a8075002be4f44788c2da8680125f4"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

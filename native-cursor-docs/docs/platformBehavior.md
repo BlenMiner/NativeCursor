@@ -29,16 +29,16 @@ Some operating systems do not expose a perfect visual match for every cursor sha
 
 Unity and the OS can replace the active cursor after your code sets it. Native Cursor protects against that in player builds:
 
-- Windows subclasses the Unity window and handles `WM_SETCURSOR`. It also checks the active OS cursor while the app is focused and the pointer is inside the client area, then reapplies only if another cursor replaced it.
+- Windows uses the system window-subclass chain to handle `WM_SETCURSOR`, then reapplies after Unity processes client-area mouse movement. The subclass is removed when the service is disabled or destroyed.
 - MacOS keeps the current `NSCursor` authoritative and redirects later AppKit or Unity cursor changes back to the active native cursor.
-- Linux uses XFixes cursor notifications when available. If XFixes is not available, it falls back to a low-frequency reapply while focused.
-- WebGL writes the matching CSS cursor value to the Unity canvas.
+- Linux uses XFixes cursor notifications when available. If XFixes is not available, it falls back to a low-frequency reapply while focused. It never applies a cursor to the X root window during focus transitions.
+- WebGL writes the matching CSS cursor value to Unity's active canvas, with fallbacks for custom WebGL templates.
 
 This keeps the visible cursor representative of what the game uses in builds, without relying on the virtual cursor fallback.
 
 ## Editor behavior
 
-The native services are build-only. The Unity editor can still show editor-specific cursor behavior while inspecting UI, dragging windows, recompiling, or showing loading states. Treat editor cursor display as a convenience preview and validate final cursor behavior in a player build.
+The platform P/Invoke services are build-only. In particular, the Windows service does not subclass the Unity Editor window: a docked Game view has no independent native window, so an Editor hook would also affect Inspector, Console, and other panes. Treat Editor cursor display as a convenience preview and validate final cursor behavior in a player build.
 
 ## Build workflows
 

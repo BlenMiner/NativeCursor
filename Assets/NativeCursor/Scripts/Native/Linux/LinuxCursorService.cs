@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Riten.Native.Cursors
 {
-    internal class LinuxCursorService : MonoBehaviour, ICursorService
+    internal class LinuxCursorService : MonoBehaviour, ICursorService, ICursorServiceLifecycle
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Setup()
@@ -25,9 +25,6 @@ namespace Riten.Native.Cursors
         
         [DllImport("libX11")]
         static extern IntPtr XOpenDisplay(string display);
-
-        [DllImport("libX11")]
-        static extern IntPtr XRootWindow(IntPtr display, int screen);
 
         [DllImport("libX11")]
         static extern int XGetInputFocus(IntPtr display, out IntPtr focusReturn, out int revertToReturn);
@@ -79,7 +76,8 @@ namespace Riten.Native.Cursors
         private IntPtr _display;
         private IntPtr _window;
         private NTCursors _activeCursor = NTCursors.Default;
-        private bool _hasFocus = true;
+        private bool _hasFocus;
+        private bool _serviceActive;
         private bool _hasCursorNotifications;
         private bool _ignoreNextCursorNotify;
         private float _ignoreNextCursorNotifyUntil;
@@ -131,6 +129,8 @@ namespace Riten.Native.Cursors
 
         private void Awake()
         {
+            _hasFocus = Application.isFocused;
+
             try
             {
                 _display = XOpenDisplay(null);
@@ -155,18 +155,11 @@ namespace Riten.Native.Cursors
             }
             
             TryInitializeCursorNotifications();
-            RefreshTargetWindow();
-            
-            if (_window == IntPtr.Zero)
-            {
-                Debug.LogError("Failed to get cursor target window");
-                return;
-            }
         }
 
         private void Update()
         {
-            if (_display == IntPtr.Zero || !_hasFocus)
+            if (_display == IntPtr.Zero || !_serviceActive || !_hasFocus)
                 return;
 
             if (Time.unscaledTime >= _nextWindowRefreshTime)
@@ -192,6 +185,8 @@ namespace Riten.Native.Cursors
 
         private void OnDestroy()
         {
+            _serviceActive = false;
+
             if (_display == IntPtr.Zero)
                 return;
 
@@ -211,8 +206,11 @@ namespace Riten.Native.Cursors
         {
             _hasFocus = hasFocus;
 
-            if (!hasFocus)
+            if (!_serviceActive || !hasFocus)
+            {
+                _window = IntPtr.Zero;
                 return;
+            }
 
             RefreshTargetWindow();
             ApplyCursor(_activeCursor);
@@ -225,8 +223,11 @@ namespace Riten.Native.Cursors
 
             XGetInputFocus(_display, out var focusedWindow, out _);
 
+            // Never define a cursor on the X root window. During startup/focus transitions,
+            // XGetInputFocus can return None or PointerRoot; touching the root would affect
+            // the desktop and other applications rather than just the Unity player.
             if (focusedWindow == IntPtr.Zero || focusedWindow == new IntPtr(1))
-                focusedWindow = XRootWindow(_display, 0);
+                return IntPtr.Zero;
 
             return focusedWindow;
         }
@@ -253,9 +254,21 @@ namespace Riten.Native.Cursors
 
         private void RefreshTargetWindow()
         {
+            if (_display == IntPtr.Zero || !_serviceActive || !_hasFocus)
+            {
+                _window = IntPtr.Zero;
+                return;
+            }
+
             var window = GetTargetWindow();
 
-            if (window == IntPtr.Zero || window == _window)
+            if (window == IntPtr.Zero)
+            {
+                _window = IntPtr.Zero;
+                return;
+            }
+
+            if (window == _window)
                 return;
 
             _window = window;
@@ -308,7 +321,7 @@ namespace Riten.Native.Cursors
 
         private bool ApplyCursor(NTCursors nativeCursorName)
         {
-            if (_display == IntPtr.Zero)
+            if (_display == IntPtr.Zero || !_serviceActive || !_hasFocus)
                 return false;
 
             RefreshTargetWindow();
@@ -334,6 +347,20 @@ namespace Riten.Native.Cursors
         public void ResetCursor()
         {
             SetCursor(NTCursors.Default);
+        }
+
+        public void OnActivated()
+        {
+            _serviceActive = true;
+
+            if (_display != IntPtr.Zero && _hasFocus)
+                ApplyCursor(_activeCursor);
+        }
+
+        public void OnDeactivated()
+        {
+            _serviceActive = false;
+            _ignoreNextCursorNotify = false;
         }
     }
 }

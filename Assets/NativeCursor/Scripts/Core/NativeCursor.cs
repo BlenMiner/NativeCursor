@@ -5,10 +5,24 @@ namespace Riten.Native.Cursors
 {
     public static class NativeCursor
     {
+        private static readonly object PublicCursorPackOwner = new();
+
         static ICursorService _instance;
 
         private static ICursorService _defaultService;
         private static VirtualCursorService _vcs;
+        private static NTCursors _requestedCursor = NTCursors.Default;
+        private static object _cursorPackOwner;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticState()
+        {
+            _instance = null;
+            _defaultService = null;
+            _vcs = null;
+            _requestedCursor = NTCursors.Default;
+            _cursorPackOwner = null;
+        }
 
         public static string ServiceName => _instance == null ? "NULL" : _instance.GetType().Name;
         public static MaskCursorMode VirtualMaskCursorMode
@@ -37,18 +51,29 @@ namespace Riten.Native.Cursors
         {
             if (_instance == service) 
                 return;
+
+            if (!ReferenceEquals(service, _vcs))
+                _cursorPackOwner = null;
             
             _instance?.ResetCursor();
+
+            if (_instance is ICursorServiceLifecycle previousLifecycle)
+                previousLifecycle.OnDeactivated();
+
             _instance = service;
+
+            if (_instance is ICursorServiceLifecycle currentLifecycle)
+                currentLifecycle.OnActivated();
 
             if (_instance == null)
                 Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
             else
-                _instance.SetCursor(NTCursors.Default);
+                _instance.SetCursor(_requestedCursor);
         }
         
         public static bool SetCursor(NTCursors ntCursor)
         {
+            _requestedCursor = ntCursor;
             return _instance != null && _instance.SetCursor(ntCursor);
         }
         
@@ -59,12 +84,23 @@ namespace Riten.Native.Cursors
         {
             if (cursorPack == null)
             {
-                if (_vcs)
-                    _vcs.UpdatePack(null, null);
-
-                SetService(_defaultService);
+                ClearCursorPackInternal();
                 return;
             }
+
+            SetCursorPack(cursorPack, cmr, PublicCursorPackOwner);
+        }
+
+        internal static void SetCursorPack(CursorPack cursorPack, Camera cmr, object owner)
+        {
+            if (cursorPack == null)
+            {
+                ClearCursorPack(owner);
+                return;
+            }
+
+            if (owner == null)
+                throw new System.ArgumentNullException(nameof(owner));
             
             if (!_vcs)
             {
@@ -78,9 +114,40 @@ namespace Riten.Native.Cursors
                 _vcs = go.AddComponent<VirtualCursorService>();
             }
             
+            _cursorPackOwner = owner;
             _vcs.UpdatePack(cursorPack, cmr);
-            
+
+            var wasAlreadyActive = ReferenceEquals(_instance, _vcs);
             SetService(_vcs);
+
+            if (wasAlreadyActive)
+                _vcs.SetCursor(_requestedCursor);
+        }
+
+        internal static object CursorPackOwner => _cursorPackOwner;
+
+        internal static bool IsCursorPackOwner(object owner)
+        {
+            return owner != null && ReferenceEquals(_cursorPackOwner, owner);
+        }
+
+        internal static bool ClearCursorPack(object owner)
+        {
+            if (!IsCursorPackOwner(owner))
+                return false;
+
+            ClearCursorPackInternal();
+            return true;
+        }
+
+        private static void ClearCursorPackInternal()
+        {
+            _cursorPackOwner = null;
+
+            if (_vcs)
+                _vcs.UpdatePack(null, null);
+
+            SetService(_defaultService);
         }
         
         public static void SetCursorPackCamera(Camera cmr)
@@ -92,7 +159,6 @@ namespace Riten.Native.Cursors
         public static void ClearCursorPack()
         {
             SetCursorPack(null, null);
-            Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
         }
         
         /// <summary>
@@ -101,6 +167,7 @@ namespace Riten.Native.Cursors
         /// </summary>
         public static void ResetCursor()
         {
+            _requestedCursor = NTCursors.Default;
             _instance?.ResetCursor();
         }
     }

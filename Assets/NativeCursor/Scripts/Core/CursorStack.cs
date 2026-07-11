@@ -41,13 +41,13 @@ namespace Riten.Native.Cursors
 
         public static event Action Changed;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        static void Setup()
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStaticState()
         {
             _stack.Clear();
             _nextUid = 1;
             _paused = false;
-            NotifyChanged();
+            Changed = null;
         }
 
         public static int Count => _stack.Count;
@@ -75,11 +75,6 @@ namespace Riten.Native.Cursors
             if (_stack.Count == 0)
                  NativeCursor.ResetCursor();
             else NativeCursor.SetCursor(Peek().cursor);
-        }
-
-        static bool HasActiveCursorChanged(CursorStackItem previous, CursorStackItem current)
-        {
-            return previous.id != current.id || previous.cursor != current.cursor;
         }
 
         /// <summary>
@@ -134,7 +129,6 @@ namespace Riten.Native.Cursors
         /// <returns>The id of the pushed cursor. Use this to remove the cursor later.</returns>
         public static int Push(NTCursors cursor, int priority = 0, int secondaryPriority = 0)
         {
-            var previousActive = Peek();
             var uid = _nextUid++;
             
             _stack.Add(new CursorStackItem
@@ -145,8 +139,7 @@ namespace Riten.Native.Cursors
                 secondaryPriority = secondaryPriority
             });
 
-            if (HasActiveCursorChanged(previousActive, Peek()))
-                OnStackChanged();
+            OnStackChanged();
 
             NotifyChanged();
 
@@ -185,8 +178,6 @@ namespace Riten.Native.Cursors
         public static bool Pop(int id)
         {
             if (id == 0) return false;
-
-            var previousActive = Peek();
             
             bool removed = false;
             
@@ -202,9 +193,7 @@ namespace Riten.Native.Cursors
 
             if (removed)
             {
-                if (HasActiveCursorChanged(previousActive, Peek()))
-                    OnStackChanged();
-
+                OnStackChanged();
                 NotifyChanged();
                 return true;
             }
@@ -220,14 +209,9 @@ namespace Riten.Native.Cursors
         {
             if (_stack.Count == 0)
                 return;
-
-            var previousActive = Peek();
             
             _stack.Clear();
-
-            if (HasActiveCursorChanged(previousActive, Peek()))
-                OnStackChanged();
-
+            OnStackChanged();
             NotifyChanged();
         }
         
@@ -321,8 +305,6 @@ namespace Riten.Native.Cursors
             if (id == 0)
                 return false;
 
-            var previousActive = Peek();
-
             for (int i = _stack.Count - 1; i >= 0; i--)
             {
                 if (_stack[i].id == id)
@@ -346,9 +328,7 @@ namespace Riten.Native.Cursors
                         secondaryPriority = newSecondaryPriority
                     };
                     
-                    if (HasActiveCursorChanged(previousActive, Peek()))
-                        OnStackChanged();
-
+                    OnStackChanged();
                     NotifyChanged();
                     return true;
                 }

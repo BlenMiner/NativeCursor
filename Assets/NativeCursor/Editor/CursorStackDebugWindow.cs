@@ -137,6 +137,14 @@ namespace Riten.Native.Cursors.Editor
 
         private void OnPlayModeStateChanged(PlayModeStateChange state)
         {
+            if (state == PlayModeStateChange.EnteredPlayMode)
+            {
+                // CursorStack clears runtime event handlers during SubsystemRegistration so
+                // no-domain-reload play sessions start with the same state as a player build.
+                CursorStack.Changed -= Repaint;
+                CursorStack.Changed += Repaint;
+            }
+
             Repaint();
         }
     }

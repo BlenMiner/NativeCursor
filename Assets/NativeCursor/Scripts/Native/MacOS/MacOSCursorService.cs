@@ -4,8 +4,11 @@ using UnityEngine;
 
 namespace Riten.Native.Cursors
 {
-    public class MacOSCursorService : MonoBehaviour, ICursorService
+    public class MacOSCursorService : MonoBehaviour, ICursorService, ICursorServiceLifecycle
     {
+        private bool _serviceActive;
+        private NTCursors _activeCursor = NTCursors.Default;
+
         [DllImport("CursorWrapper")]
         private static extern void SetCursorToArrow();
 
@@ -64,17 +67,31 @@ namespace Riten.Native.Cursors
 
         private void OnApplicationFocus(bool hasFocus)
         {
-            if (hasFocus)
+            if (_serviceActive && hasFocus)
                 ReapplyNativeCursor();
+        }
+
+        private void OnEnable()
+        {
+            if (_serviceActive)
+                SetCursor(_activeCursor);
+        }
+
+        private void OnDisable()
+        {
+            DisableNativeCursorOverride();
         }
 
         private void OnDestroy()
         {
+            _serviceActive = false;
             DisableNativeCursorOverride();
         }
 
         public bool SetCursor(NTCursors cursor)
         {
+            _activeCursor = cursor;
+
             switch (cursor)
             {
                 case NTCursors.Default:
@@ -98,7 +115,18 @@ namespace Riten.Native.Cursors
 
         public void ResetCursor()
         {
-            SetCursorToArrow();
+            SetCursor(NTCursors.Default);
+        }
+
+        public void OnActivated()
+        {
+            _serviceActive = true;
+        }
+
+        public void OnDeactivated()
+        {
+            _serviceActive = false;
+            DisableNativeCursorOverride();
         }
     }
 }

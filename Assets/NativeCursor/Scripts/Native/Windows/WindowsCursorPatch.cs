@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Riten.Native.Cursors
 {
-    internal class WindowsCursorPatch : MonoBehaviour, ICursorService
+    internal class WindowsCursorPatch : MonoBehaviour, ICursorService, ICursorServiceLifecycle
     {
         private const uint IDC_ARROW = 32512;        // Normal select
         private const uint IDC_IBEAM = 32513;        // Text select
@@ -20,9 +20,24 @@ namespace Riten.Native.Cursors
         private const uint IDC_SIZEALL = 32646;      // Move
         private const uint IDC_NO = 32648;           // Unavailable
         private const uint IDC_HAND = 32649;         // Link select
-        
+
+        private const int HTCLIENT = 1;
+        private const uint WM_SETCURSOR = 0x0020;
+        private const uint WM_NCDESTROY = 0x0082;
+        private const uint WM_MOUSEMOVE = 0x0200;
+        private static readonly Dictionary<NTCursors, IntPtr> Cursors = new();
+        private static readonly SubclassProcDelegate SubclassProc = WindowSubclassProc;
+        private static readonly UIntPtr SubclassId = new(0x4E435552u); // "NCUR"
+
+        private static IntPtr _hookedWindow;
+        private static IntPtr _cursorHandle;
+        private static bool _cursorOverrideActive;
+
+        private bool _hasFocus = true;
+        private bool _serviceActive;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        static void Setup()
+        private static void Setup()
         {
             var go = new GameObject("NativeCursor#WindowsCursorService")
             {
@@ -31,190 +46,172 @@ namespace Riten.Native.Cursors
             DontDestroyOnLoad(go);
 
             var service = go.AddComponent<WindowsCursorPatch>();
-
             NativeCursor.SetFallbackService(service);
             NativeCursor.SetService(service);
         }
-        
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        static extern IntPtr SetCursor(IntPtr hCursor);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetCursor(IntPtr hCursor);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        static extern IntPtr GetCursor();
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        static extern IntPtr LoadCursor(IntPtr hInstance, uint lpCursorName);
+        private static extern IntPtr LoadCursor(IntPtr hInstance, uint lpCursorName);
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetActiveWindow();
 
-        [DllImport("user32.dll")]
-        private static extern bool GetCursorPos(out POINT lpPoint);
+        [DllImport("comctl32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetWindowSubclass(
+            IntPtr hWnd,
+            SubclassProcDelegate pfnSubclass,
+            UIntPtr uIdSubclass,
+            UIntPtr dwRefData);
 
-        [DllImport("user32.dll")]
-        private static extern bool ScreenToClient(IntPtr hWnd, ref POINT lpPoint);
+        [DllImport("comctl32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool RemoveWindowSubclass(
+            IntPtr hWnd,
+            SubclassProcDelegate pfnSubclass,
+            UIntPtr uIdSubclass);
 
-        [DllImport("user32.dll")]
-        private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint wMsg, IntPtr wParam,
+        [DllImport("comctl32.dll")]
+        private static extern IntPtr DefSubclassProc(
+            IntPtr hWnd,
+            uint uMsg,
+            IntPtr wParam,
             IntPtr lParam);
 
-        [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
-        private static extern int SetWindowLong32(HandleRef hWnd, int nIndex, int dwNewLong);
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+        private delegate IntPtr SubclassProcDelegate(
+            IntPtr hWnd,
+            uint uMsg,
+            IntPtr wParam,
+            IntPtr lParam,
+            UIntPtr uIdSubclass,
+            UIntPtr dwRefData);
 
-        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
-        private static extern IntPtr SetWindowLongPtr64(HandleRef hWnd, int nIndex, IntPtr dwNewLong);
-
-        private static HandleRef hMainWindow;
-        private static IntPtr unityWndProcHandler, customWndProcHandler;
-
-        private delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-
-        private static WndProcDelegate procDelegate;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct POINT
+        private void Awake()
         {
-            public int x;
-            public int y;
+            _cursorHandle = GetCursorHandle(NTCursors.Default);
         }
 
-        [StructLayout(LayoutKind.Sequential)]
-        private struct RECT
+        private void OnEnable()
         {
-            public int left;
-            public int top;
-            public int right;
-            public int bottom;
-        }
-
-        private const int GWLP_WNDPROC = -4;
-        private const int HTCLIENT = 1;
-        private const uint WM_SETCURSOR = 0x0020;
-
-        private static IntPtr cursorHandle;
-        private bool _hasFocus = true;
-
-        static readonly Dictionary<NTCursors, IntPtr> _cursors = new ();
-
-        void Awake()
-        {
-            cursorHandle = GetCursor(NTCursors.Default);
-            InstallHook();
-        }
-
-        void Update()
-        {
-            if (!_hasFocus || cursorHandle == IntPtr.Zero)
+            if (!_serviceActive)
                 return;
 
-            if (customWndProcHandler == IntPtr.Zero)
-                InstallHook();
+            _cursorOverrideActive = true;
+            InstallHook();
 
-            if (IsCursorInsideClientArea() && GetCursor() != cursorHandle)
-                SetCursor(cursorHandle);
+            if (_hasFocus && _cursorHandle != IntPtr.Zero)
+                SetCursor(_cursorHandle);
         }
 
-        void OnApplicationFocus(bool hasFocus)
+        private void OnDisable()
+        {
+            _cursorOverrideActive = false;
+            RestoreHook();
+        }
+
+        private void OnDestroy()
+        {
+            _serviceActive = false;
+            _cursorOverrideActive = false;
+            RestoreHook();
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
         {
             _hasFocus = hasFocus;
 
-            if (hasFocus && cursorHandle != IntPtr.Zero)
-            {
-                InstallHook();
-                SetCursor(cursorHandle);
-            }
+            if (!_serviceActive || !hasFocus || _cursorHandle == IntPtr.Zero)
+                return;
+
+            InstallHook();
+            SetCursor(_cursorHandle);
+        }
+
+        private void Update()
+        {
+            if (!_serviceActive || !_hasFocus || _cursorHandle == IntPtr.Zero || _hookedWindow != IntPtr.Zero)
+                return;
+
+            // The player window is not guaranteed to be active during BeforeSceneLoad.
+            // Retry once it becomes available, and keep the requested cursor visible meanwhile.
+            InstallHook();
+            SetCursor(_cursorHandle);
         }
 
         private static void InstallHook()
         {
-            if (customWndProcHandler != IntPtr.Zero)
+            var window = GetUnityWindow();
+
+            if (window == IntPtr.Zero || window == _hookedWindow)
                 return;
 
-            var window = GetActiveWindow();
-
-            if (window == IntPtr.Zero)
-                return;
-
-            hMainWindow = new HandleRef(null, window);
-            procDelegate = WndProc;
-            customWndProcHandler = Marshal.GetFunctionPointerForDelegate(procDelegate);
-            unityWndProcHandler = SetWindowLongPtr(hMainWindow, GWLP_WNDPROC, customWndProcHandler);
-
-            if (unityWndProcHandler != IntPtr.Zero)
-                return;
-
-            hMainWindow = new HandleRef(null, IntPtr.Zero);
-            customWndProcHandler = IntPtr.Zero;
-            procDelegate = null;
-        }
-
-        void OnDestroy()
-        {
             RestoreHook();
+
+            if (SetWindowSubclass(window, SubclassProc, SubclassId, UIntPtr.Zero))
+                _hookedWindow = window;
         }
 
         private static void RestoreHook()
         {
-            if (hMainWindow.Handle != IntPtr.Zero && unityWndProcHandler != IntPtr.Zero)
-                SetWindowLongPtr(hMainWindow, GWLP_WNDPROC, unityWndProcHandler);
+            if (_hookedWindow == IntPtr.Zero)
+                return;
 
-            hMainWindow = new HandleRef(null, IntPtr.Zero);
-            unityWndProcHandler = IntPtr.Zero;
-            customWndProcHandler = IntPtr.Zero;
-            procDelegate = null;
+            RemoveWindowSubclass(_hookedWindow, SubclassProc, SubclassId);
+            _hookedWindow = IntPtr.Zero;
         }
 
-        [AOT.MonoPInvokeCallback(typeof(WndProcDelegate))]
-        private static IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+        private static IntPtr GetUnityWindow()
         {
-            if (msg == WM_SETCURSOR && IsClientCursorMessage(lParam) && cursorHandle != IntPtr.Zero)
+            // SetWindowSubclass cannot cross threads. GetActiveWindow only returns a window
+            // owned by the calling thread, so a missing window is retried on the next focus/cursor update.
+            return GetActiveWindow();
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(SubclassProcDelegate))]
+        private static IntPtr WindowSubclassProc(
+            IntPtr hWnd,
+            uint message,
+            IntPtr wParam,
+            IntPtr lParam,
+            UIntPtr subclassId,
+            UIntPtr referenceData)
+        {
+            if (message == WM_NCDESTROY && hWnd == _hookedWindow)
             {
-                SetCursor(cursorHandle);
+                RemoveWindowSubclass(hWnd, SubclassProc, SubclassId);
+                _hookedWindow = IntPtr.Zero;
+            }
+
+            if (_cursorOverrideActive && message == WM_SETCURSOR &&
+                IsClientCursorMessage(lParam) && _cursorHandle != IntPtr.Zero)
+            {
+                SetCursor(_cursorHandle);
                 return new IntPtr(1);
             }
 
-            return CallWindowProc(unityWndProcHandler, hWnd, msg, wParam, lParam);
+            var result = DefSubclassProc(hWnd, message, wParam, lParam);
+
+            // Unity can call SetCursor while processing mouse movement. Apply ours after it finishes.
+            if (_cursorOverrideActive && message == WM_MOUSEMOVE && _cursorHandle != IntPtr.Zero)
+                SetCursor(_cursorHandle);
+
+            return result;
         }
 
         private static bool IsClientCursorMessage(IntPtr lParam)
         {
-            return ((int)lParam & 0xffff) == HTCLIENT;
+            return ((long)lParam & 0xffff) == HTCLIENT;
         }
 
-        private static bool IsCursorInsideClientArea()
+        private static IntPtr GetCursorHandle(NTCursors nativeCursorName)
         {
-            if (hMainWindow.Handle == IntPtr.Zero)
-                return true;
-
-            if (!GetCursorPos(out var point))
-                return true;
-
-            if (!ScreenToClient(hMainWindow.Handle, ref point))
-                return true;
-
-            if (!GetClientRect(hMainWindow.Handle, out var clientRect))
-                return true;
-
-            return point.x >= clientRect.left
-                   && point.x < clientRect.right
-                   && point.y >= clientRect.top
-                   && point.y < clientRect.bottom;
-        }
-
-        private static IntPtr SetWindowLongPtr(HandleRef hWnd, int nIndex, IntPtr dwNewLong)
-        {
-            if (IntPtr.Size == 8) return SetWindowLongPtr64(hWnd, nIndex, dwNewLong);
-            return new IntPtr(SetWindowLong32(hWnd, nIndex, dwNewLong.ToInt32()));
-        }
-
-        static IntPtr GetCursor(NTCursors nativeCursorName)
-        {
-            if (_cursors.TryGetValue(nativeCursorName, out var cursor))
+            if (Cursors.TryGetValue(nativeCursorName, out var cursor))
                 return cursor;
-            
+
             cursor = LoadCursor(IntPtr.Zero, nativeCursorName switch
             {
                 NTCursors.Default => IDC_ARROW,
@@ -229,33 +226,59 @@ namespace Riten.Native.Cursors
                 NTCursors.ResizeAll => IDC_SIZEALL,
                 NTCursors.Busy => IDC_WAIT,
                 NTCursors.Invalid => IDC_NO,
-                
                 NTCursors.OpenHand => IDC_HAND,
                 NTCursors.ClosedHand => IDC_HAND,
-                
                 _ => throw new ArgumentOutOfRangeException(nameof(nativeCursorName), nativeCursorName, null)
             });
-            
-            _cursors.Add(nativeCursorName, cursor);
+
+            Cursors.Add(nativeCursorName, cursor);
             return cursor;
         }
 
         public bool SetCursor(NTCursors nativeCursorName)
         {
-            var arrowCursorHandle = GetCursor(nativeCursorName);
+            var cursor = GetCursorHandle(nativeCursorName);
 
-            if (arrowCursorHandle == IntPtr.Zero)
+            if (cursor == IntPtr.Zero)
                 return false;
 
-            cursorHandle = arrowCursorHandle;
+            _cursorHandle = cursor;
+
+            if (!_serviceActive)
+                return true;
+
             InstallHook();
-            SetCursor(arrowCursorHandle);
+
+            if (_hasFocus)
+                SetCursor(cursor);
+
             return true;
         }
 
         public void ResetCursor()
         {
             SetCursor(NTCursors.Default);
+        }
+
+        public void OnActivated()
+        {
+            _serviceActive = true;
+            _cursorOverrideActive = true;
+
+            if (!isActiveAndEnabled)
+                return;
+
+            InstallHook();
+
+            if (_hasFocus && _cursorHandle != IntPtr.Zero)
+                SetCursor(_cursorHandle);
+        }
+
+        public void OnDeactivated()
+        {
+            _serviceActive = false;
+            _cursorOverrideActive = false;
+            RestoreHook();
         }
     }
 }
