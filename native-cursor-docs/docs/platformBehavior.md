@@ -29,7 +29,7 @@ Some operating systems do not expose a perfect visual match for every cursor sha
 
 Unity and the OS can replace the active cursor after your code sets it. Native Cursor protects against that in player builds:
 
-- Windows uses the system window-subclass chain to handle `WM_SETCURSOR`, then reapplies after Unity processes client-area mouse movement. The subclass is removed when the service is disabled or destroyed.
+- Windows subclasses every Unity player window on the main thread (matched by window class, so native dialogs and message boxes are never hooked) to handle client-area `WM_SETCURSOR`, then reapplies after Unity processes mouse movement. Windows created later, such as secondary displays, are picked up automatically. Unity hides the cursor through the system display counter, so `Cursor.visible` and `CursorLockMode.Locked` keep working. The subclass is removed when the service is disabled, deactivated, or destroyed.
 - MacOS keeps the current `NSCursor` authoritative and redirects later AppKit or Unity cursor changes back to the active native cursor.
 - Linux uses XFixes cursor notifications when available. If XFixes is not available, it falls back to a low-frequency reapply while focused. It never applies a cursor to the X root window during focus transitions.
 - WebGL writes the matching CSS cursor value to Unity's active canvas, with fallbacks for custom WebGL templates.
