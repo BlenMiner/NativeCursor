@@ -38,7 +38,9 @@ This keeps the visible cursor representative of what the game uses in builds, wi
 
 ## Editor behavior
 
-The platform P/Invoke services are build-only. In particular, the Windows service does not subclass the Unity Editor window: a docked Game view has no independent native window, so an Editor hook would also affect Inspector, Console, and other panes. Treat Editor cursor display as a convenience preview and validate final cursor behavior in a player build.
+The platform P/Invoke services are build-only. In particular, the Windows service does not subclass the Unity Editor window: a docked Game view has no independent native window, so an Editor hook would also affect Inspector, Console, and other panes.
+
+Instead, an Editor-only service (`EditorCursorService`) maps each `NTCursors` value to the closest Editor `MouseCursor` and registers a cursor rect over the game area of every open Game view, in both edit mode and play mode. It uses an overlay that ignores input, so game interaction is unaffected. `Default` is left to the Game view so Unity's own custom cursor textures still show. Shapes the Editor cannot draw use a stand-in: `Crosshair` shows an arrow with a plus, `Busy` a rotate arrow, `Invalid` an arrow with a minus, and the hand cursors the pan hand. Treat Editor cursor display as a convenience preview and validate final cursor behavior in a player build.
 
 ## Build workflows
 

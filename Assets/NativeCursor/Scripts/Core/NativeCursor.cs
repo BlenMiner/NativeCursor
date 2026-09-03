@@ -108,8 +108,10 @@ namespace Riten.Native.Cursors
                 {
                     hideFlags = HideFlags.HideAndDontSave
                 };
-                
-                Object.DontDestroyOnLoad(go);
+
+                // DontDestroyOnLoad throws outside play mode; HideAndDontSave already keeps the object alive there.
+                if (Application.isPlaying)
+                    Object.DontDestroyOnLoad(go);
                 
                 _vcs = go.AddComponent<VirtualCursorService>();
             }
