@@ -1,0 +1,31 @@
+{
+  "name": "com.riten.nativecursor",
+  "displayName": "Native Cursor",
+  "version": "1.0.0",
+  "unity": "2022.3",
+  "description": "Cross-platform native OS cursors for Unity (Windows, macOS, Linux, WebGL) with virtual .cur/.ani cursor packs, a cursor stack, uGUI and UI Toolkit components, and an Editor preview.",
+  "documentationUrl": "https://gameobject.xyz/nativecursor/",
+  "changelogUrl": "https://github.com/BlenMiner/NativeCursor/commits/main",
+  "licensesUrl": "https://github.com/BlenMiner/NativeCursor/blob/main/LICENSE",
+  "license": "MIT",
+  "author": {
+    "name": "Valentin Bordeianu",
+    "url": "https://github.com/BlenMiner"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BlenMiner/NativeCursor.git"
+  },
+  "keywords": [
+    "cursor",
+    "mouse",
+    "native",
+    "ui",
+    "cur",
+    "ani"
+  ],
+  "dependencies": {
+    "com.unity.ugui": "1.0.0",
+    "com.unity.inputsystem": "1.7.0"
+  }
+}

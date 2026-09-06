@@ -15,6 +15,38 @@ WebGL, Windows, MacOS and Linux
 
 All `NTCursors` values are mapped on every supported platform. Some operating systems do not expose a perfect visual match for every shape, so Native Cursor uses the closest native OS cursor rather than falling back to a software cursor.
 
+## Installation
+
+### Unity Package Manager (git URL)
+
+In Unity open **Window > Package Manager**, click **+** and choose **Add package from git URL...**, then paste:
+
+```
+https://github.com/BlenMiner/NativeCursor.git?path=/Assets/NativeCursor
+```
+
+To pin a specific release or commit, append it after `#`:
+
+```
+https://github.com/BlenMiner/NativeCursor.git?path=/Assets/NativeCursor#v1.0.0
+```
+
+Or add it to `Packages/manifest.json` directly:
+
+```json
+{
+  "dependencies": {
+    "com.riten.nativecursor": "https://github.com/BlenMiner/NativeCursor.git?path=/Assets/NativeCursor"
+  }
+}
+```
+
+The package depends on `com.unity.ugui` and `com.unity.inputsystem`, which the Package Manager resolves automatically. Requires Unity 2022.3 or newer.
+
+### Unity Package / Asset Store
+
+Import the `.unitypackage` as usual; everything lives under `Assets/NativeCursor`.
+
 ## Docs
 
 https://gameobject.xyz/nativecursor/
