@@ -1,5 +1,5 @@
 using UnityEngine;
-#if ENABLE_INPUT_SYSTEM
+#if ENABLE_INPUT_SYSTEM && NATIVECURSOR_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
 
@@ -468,7 +468,7 @@ namespace Riten.Native.Cursors.Virtual
 
         private static bool TryGetMousePosition(out Vector2 position)
         {
-#if ENABLE_INPUT_SYSTEM
+#if ENABLE_INPUT_SYSTEM && NATIVECURSOR_INPUT_SYSTEM
             var mouse = Mouse.current;
 
             if (mouse != null)

@@ -1,4 +1,23 @@
 {
-	"name": "NativeCursor.Examples",
-	"references":[ "GUID:59a8075002be4f44788c2da8680125f4" ]
+    "name": "NativeCursor.Examples",
+    "rootNamespace": "",
+    "references": [
+        "GUID:59a8075002be4f44788c2da8680125f4",
+        "GUID:2bafac87e7f4b9b418d9448d219b01ab"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.ugui",
+            "expression": "1.0.0",
+            "define": "NATIVECURSOR_UGUI"
+        }
+    ],
+    "noEngineReferences": false
 }

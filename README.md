@@ -41,7 +41,10 @@ Or add it to `Packages/manifest.json` directly:
 }
 ```
 
-The package depends on `com.unity.ugui` and `com.unity.inputsystem`, which the Package Manager resolves automatically. Requires Unity 2022.3 or newer.
+Requires Unity 2022.3 or newer. The package has no required dependencies. Two are optional and detected automatically:
+
+- `com.unity.ugui` enables the `OnHoverCursor`, `OnPressCursor`, and `OnDragCursor` components and the example scene scripts.
+- `com.unity.inputsystem` lets the virtual cursor's live inverted mask read the pointer position when the project uses the Input System as its active input handler. With the legacy Input Manager nothing extra is needed.
 
 ### Unity Package / Asset Store
 

@@ -1,3 +1,5 @@
+// Requires the uGUI package (com.unity.ugui); compiled out when it is not installed.
+#if NATIVECURSOR_UGUI
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -73,3 +75,5 @@ namespace Riten.Native.Cursors.UI
         }
     }
 }
+
+#endif

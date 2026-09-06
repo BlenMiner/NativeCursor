@@ -24,8 +24,5 @@
     "cur",
     "ani"
   ],
-  "dependencies": {
-    "com.unity.ugui": "1.0.0",
-    "com.unity.inputsystem": "1.7.0"
-  }
+  "dependencies": {}
 }
