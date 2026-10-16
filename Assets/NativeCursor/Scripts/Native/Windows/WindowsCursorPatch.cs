@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
 using UnityEngine;
 
 namespace Riten.Native.Cursors
@@ -48,7 +47,8 @@ namespace Riten.Native.Cursors
         private static readonly UIntPtr SubclassId = new(0x4E435552u); // "NCUR"
         private static readonly List<IntPtr> HookedWindows = new();
         private static readonly List<IntPtr> ScannedWindows = new();
-        private static readonly StringBuilder ClassNameBuffer = new(ClassNameBufferLength);
+        // IL2CPP can shrink StringBuilder capacity during marshal-back; keep a fixed UTF-16 buffer.
+        private static readonly ushort[] ClassNameBuffer = new ushort[ClassNameBufferLength];
 
         private static IntPtr _cursorHandle;
         private static bool _cursorOverrideActive;
@@ -87,8 +87,8 @@ namespace Riten.Native.Cursors
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool IsWindow(IntPtr hWnd);
 
-        [DllImport("user32.dll", EntryPoint = "GetClassNameW", CharSet = CharSet.Unicode)]
-        private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+        [DllImport("user32.dll", EntryPoint = "GetClassNameW", ExactSpelling = true)]
+        private static extern int GetClassName(IntPtr hWnd, [Out] ushort[] lpClassName, int nMaxCount);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -290,9 +290,7 @@ namespace Riten.Native.Cursors
 
         private static bool IsUnityWindow(IntPtr hWnd)
         {
-            ClassNameBuffer.Clear();
-
-            var length = GetClassName(hWnd, ClassNameBuffer, ClassNameBufferLength);
+            var length = GetClassName(hWnd, ClassNameBuffer, ClassNameBuffer.Length);
 
             if (length != UnityWindowClassName.Length)
                 return false;
